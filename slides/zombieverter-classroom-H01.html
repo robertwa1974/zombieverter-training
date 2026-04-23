@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H01 — Hardware Walkthrough | ZombieVerter Training</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap');
+:root{--bg:#0b0f10;--surface:#131a1c;--accent:#00c896;--accent2:#00a0ff;--warn:#ffaa00;--danger:#ff4455;--text:#d8eeea;--muted:#4a6860;--border:#1e2d30;--mono:'Share Tech Mono',monospace;--display:'Barlow Condensed',sans-serif;--body:'Barlow',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;}
+.deck{width:100%;height:100%;position:relative;}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;padding:44px 56px 70px;background:var(--bg);}
+.slide.active{display:flex;}
+.slide::before{content:'';position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(to bottom,var(--accent),var(--accent2));}
+.slide::after{content:'';position:absolute;bottom:0;left:6px;right:0;height:2px;background:linear-gradient(to right,var(--accent),transparent);}
+.badge{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.25);padding:4px 10px;border-radius:4px;display:inline-block;margin-bottom:14px;letter-spacing:.1em;}
+h1{font-family:var(--display);font-size:68px;font-weight:900;line-height:1;color:#fff;margin-bottom:14px;}
+h1 .hl{color:var(--accent);}
+h2{font-family:var(--display);font-size:48px;font-weight:700;line-height:1.1;color:#fff;margin-bottom:18px;}
+h2 .sub{font-size:26px;font-weight:400;color:var(--muted);display:block;margin-top:4px;}
+h3{font-family:var(--display);font-size:24px;font-weight:600;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
+p{font-size:16px;line-height:1.6;color:var(--text);max-width:800px;}
+.row{display:flex;gap:36px;flex:1;align-items:flex-start;}
+.col{flex:1;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:left;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-transform:uppercase;letter-spacing:.08em;}
+td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;font-size:13px;}
+td:first-child{font-family:var(--mono);font-size:12px;color:var(--accent);}
+td:nth-child(2){color:var(--text);}
+td:last-child{color:var(--muted);}
+.callout{padding:12px 16px;border-radius:8px;border-left:4px solid;margin:10px 0;}
+.callout.info{background:rgba(0,200,150,.06);border-color:var(--accent);}
+.callout.warn{background:rgba(255,170,0,.08);border-color:var(--warn);}
+.callout.danger{background:rgba(255,68,85,.08);border-color:var(--danger);}
+.clabel{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-bottom:5px;text-transform:uppercase;}
+.callout.info .clabel{color:var(--accent);}.callout.warn .clabel{color:var(--warn);}.callout.danger .clabel{color:var(--danger);}
+.callout p{font-size:14px;line-height:1.5;max-width:none;}
+.code{background:rgba(0,0,0,.4);border:1px solid rgba(0,200,150,.15);border-radius:8px;padding:12px 16px;font-family:var(--mono);font-size:12px;line-height:1.9;margin:10px 0;}
+.code .c{color:var(--muted);} .code .k{color:var(--accent);} .code .v{color:var(--accent2);}
+.pinbox{display:inline-block;font-family:var(--mono);font-size:11px;background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.25);color:var(--accent);padding:2px 7px;border-radius:3px;margin:2px;}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:9px 18px;gap:10px;z-index:100;}
+.nbtn{background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.2);color:var(--accent);font-family:var(--mono);font-size:12px;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all .15s;}
+.nbtn:hover{background:rgba(0,200,150,.2);} .nbtn:disabled{opacity:.3;cursor:not-allowed;}
+.sctr{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.sdots{display:flex;gap:5px;margin-left:auto;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);cursor:pointer;transition:all .15s;}
+.dot.active{background:var(--accent);transform:scale(1.3);}
+.stitle{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1;text-align:center;}
+.kh{font-family:var(--mono);font-size:10px;color:var(--muted);position:fixed;top:14px;right:18px;opacity:.4;}
+</style>
+</head>
+<body>
+<div class="kh">← → to navigate</div>
+<div class="deck" id="deck">
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" data-title="H01 Hardware">
+  <div class="badge">TRACK H — HARDWARE · MODULE H01</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <h1>VCU <span class="hl">Hardware</span><br>Walkthrough</h1>
+    <p style="font-size:20px;color:var(--muted);margin-bottom:24px;">A physical tour of the board — chips, connectors, pins, and LEDs</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 20px;">
+        <div style="font-family:var(--display);font-size:32px;font-weight:900;color:var(--accent);">STM32F107</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Main MCU — runs VCU firmware</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 20px;">
+        <div style="font-family:var(--display);font-size:32px;font-weight:900;color:var(--accent2);">ESP8266</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Wi-Fi module — hosts web interface</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 20px;">
+        <div style="font-family:var(--display);font-size:32px;font-weight:900;color:var(--warn);">56-pin</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Aptiv connector — all vehicle wiring</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding-top:16px;border-top:1px solid rgba(255,255,255,.06);font-family:var(--mono);font-size:11px;color:var(--muted);">
+    Hardware revision V1.a · V2.30A firmware · openinverter.org
+  </div>
+</div>
+
+<!-- SLIDE 2: Board Overview -->
+<div class="slide" data-title="Board Layout">
+  <div class="badge">H01 — BOARD OVERVIEW</div>
+  <h2>Board Layout<span class="sub">What's on the PCB and why it matters</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>Main Components</h3>
+      <table>
+        <tr><th>Component</th><th>What it does</th></tr>
+        <tr><td>STM32F107</td><td>Main processor — runs VCU firmware, manages all I/O</td></tr>
+        <tr><td>ESP8266</td><td>Wi-Fi module — broadcasts access point, serves web interface</td></tr>
+        <tr><td>CAN transceivers ×3</td><td>Physical layer for CAN1, CAN2, CAN3 buses</td></tr>
+        <tr><td>56-pin Aptiv header</td><td>All vehicle wiring connects here — power, signals, outputs</td></tr>
+        <tr><td>acty LED</td><td>Activity indicator — should be flashing when board has 12V</td></tr>
+        <tr><td>SWD test points C/G/D</td><td>ST-Link firmware recovery (rarely needed)</td></tr>
+      </table>
+      <div class="callout warn" style="margin-top:12px;">
+        <div class="clabel">⚠ GD32F107 Warning</div>
+        <p>Some 2021–2022 pandemic-era boards have GD32F107 instead of STM32. GD firmware branch is abandoned and diverged. Check chip markings before flashing.</p>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Wi-Fi Access Point</h3>
+      <div class="code">
+<span class="k">SSID</span>      <span class="v">inverter</span>  <span class="c">(or zom_vcu)</span>
+<span class="k">Password</span>  <span class="v">inverter123</span>
+<span class="k">IP</span>        <span class="v">192.168.4.1</span>
+      </div>
+      <div class="callout info">
+        <div class="clabel">If browser can't reach 192.168.4.1</div>
+        <p>Some newer boards don't auto-assign IP via DHCP. Manually set your device to <strong>192.168.4.2</strong>, subnet 255.255.255.0, gateway 192.168.4.1.</p>
+      </div>
+      <h3 style="margin-top:14px;">Activity LED</h3>
+      <table>
+        <tr><th>LED state</th><th>Meaning</th></tr>
+        <tr><td>Flashing</td><td>MCU running normally</td></tr>
+        <tr><td>Solid / no flash</td><td>MCU not running — check power, may need firmware recovery</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Power -->
+<div class="slide" data-title="Power Requirements">
+  <div class="badge">H01 — POWER</div>
+  <h2>Power Requirements<span class="sub">Permanent 12V — not ignition switched</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>The Two Power Pins</h3>
+      <table style="margin-bottom:14px;">
+        <tr><th>Pin</th><th>Function</th><th>Notes</th></tr>
+        <tr><td>Pin 56</td><td>12V Permanent +</td><td>Always on, even when vehicle off</td></tr>
+        <tr><td>Pin 55</td><td>12V Ground</td><td>Chassis ground — clean connection required</td></tr>
+      </table>
+      <table>
+        <tr><th>Spec</th><th>Value</th></tr>
+        <tr><td>Supply voltage</td><td>12V DC</td></tr>
+        <tr><td>Idle current draw</td><td>~150 mA</td></tr>
+        <tr><td>Bench supply setting</td><td>13V, limit 1–2A</td></tr>
+      </table>
+      <div class="callout info" style="margin-top:12px;">
+        <div class="clabel">150mA idle</div>
+        <p>Comparable to a small relay module. Won't cause meaningful parasitic drain on a healthy 12V battery.</p>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Why Permanent Power?</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-family:var(--display);font-size:16px;font-weight:600;color:#fff;margin-bottom:4px;">Charge timer management</div>
+          <div style="font-size:13px;color:var(--muted);">VCU must stay on when parked to manage scheduled charging</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-family:var(--display);font-size:16px;font-weight:600;color:#fff;margin-bottom:4px;">ISA shunt continuity</div>
+          <div style="font-size:13px;color:var(--muted);">Shunt must also have permanent power — same feed as VCU. Losing power loses UDC history.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-family:var(--display);font-size:16px;font-weight:600;color:#fff;margin-bottom:4px;">Precharge reliability</div>
+          <div style="font-size:13px;color:var(--muted);">Stale or zero UDC on startup causes precharge failures</div>
+        </div>
+      </div>
+      <div class="callout danger" style="margin-top:10px;">
+        <div class="clabel">🔴 Do Not</div>
+        <p>Do not use an ignition-switched supply for Pin 56. The VCU and ISA shunt must both have always-on power.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Key Pins -->
+<div class="slide" data-title="Key Pin Reference">
+  <div class="badge">H01 — PIN REFERENCE</div>
+  <h2>Key Pins<span class="sub">Fixed-function signals on the 56-pin Aptiv connector</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>Signal Inputs</h3>
+      <table>
+        <tr><th>Pin</th><th>Function</th><th>Signal</th></tr>
+        <tr><td>Pin 15</td><td>Ignition ON</td><td>12V when key in ON position</td></tr>
+        <tr><td>Pin 52</td><td>Start</td><td>Momentary 12V pulse (≥500ms)</td></tr>
+        <tr><td>Pin 53</td><td>Reverse</td><td>12V when reverse selected</td></tr>
+        <tr><td>Pin 54</td><td>Forward</td><td>12V when forward selected</td></tr>
+        <tr><td>Pin 49</td><td>Brake</td><td>12V when brake pressed</td></tr>
+      </table>
+      <h3 style="margin-top:14px;">Throttle</h3>
+      <table>
+        <tr><th>Pin</th><th>Function</th></tr>
+        <tr><td>Pin 48</td><td>5V supply for throttle pot(s)</td></tr>
+        <tr><td>Pin 47</td><td>Throttle channel 1 signal</td></tr>
+        <tr><td>Pin 46</td><td>Throttle channel 2 signal</td></tr>
+        <tr><td>Pin 45</td><td>Throttle ground</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <h3>Contactor Outputs (low-side)</h3>
+      <table>
+        <tr><th>Pin</th><th>Function</th></tr>
+        <tr><td>Pin 31</td><td>Negative contactor coil ground</td></tr>
+        <tr><td>Pin 33</td><td>Main (positive) contactor coil ground</td></tr>
+        <tr><td>Pin 34</td><td>Precharge contactor coil ground</td></tr>
+        <tr><td>Pin 32</td><td>Inverter/charger enable relay coil ground</td></tr>
+      </table>
+      <div class="callout danger" style="margin-top:12px;">
+        <div class="clabel">🔴 Critical wiring rule</div>
+        <p>Contactor outputs are <strong>low-side switching only</strong>. They pull the GROUND leg of the coil to ground. The positive leg of every coil must connect to 12V+. Never connect 12V+ to these pins.</p>
+      </div>
+      <div class="callout info" style="margin-top:10px;">
+        <div class="clabel">Connector sourcing</div>
+        <p>56-pin Aptiv (formerly Delphi) connector. Available on AliExpress as full kit with housing, header, and pins.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: Configurable I/O -->
+<div class="slide" data-title="Configurable I/O">
+  <div class="badge">H01 — CONFIGURABLE I/O</div>
+  <h2>Configurable I/O<span class="sub">IO Matrix — assign functions to pins via web interface</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>Output Types</h3>
+      <table style="margin-bottom:12px;">
+        <tr><th>Type</th><th>What it does</th><th>Use for</th></tr>
+        <tr><td>Low-side output</td><td>Pulls pin to ground when active</td><td>Relay coils (fans, pumps)</td></tr>
+        <tr><td>High-side PWM</td><td>Supplies 12V when active, with PWM</td><td>Gauges, PWM fans, indicators</td></tr>
+      </table>
+      <h3>Common Output Functions</h3>
+      <table>
+        <tr><th>Function</th><th>Activates when</th></tr>
+        <tr><td>CoolantPump</td><td>Precharge and run mode</td></tr>
+        <tr><td>CoolingFan</td><td>Inverter temp above FanTemp setpoint</td></tr>
+        <tr><td>RunIndication</td><td>VCU in run mode</td></tr>
+        <tr><td>BrakeLight</td><td>Brake pressed or regen active</td></tr>
+        <tr><td>HVActive</td><td>Contactors closed in run/charge mode</td></tr>
+        <tr><td>GS450Hpump</td><td>GS450h oil pump PWM control</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <h3>Input Types</h3>
+      <table style="margin-bottom:12px;">
+        <tr><th>Type</th><th>How it works</th></tr>
+        <tr><td>Digital (12V)</td><td>Apply 12V to activate — standard logic</td></tr>
+        <tr><td>Ground-pull</td><td>Pull to GND to activate — do NOT apply 12V to these pins</td></tr>
+        <tr><td>Analogue (0–5V)</td><td>Reads voltage — ProxPilot, vacuum sensor</td></tr>
+      </table>
+      <h3>Common Input Functions</h3>
+      <table>
+        <tr><th>Function</th><th>Used for</th></tr>
+        <tr><td>ProxPilot</td><td>J1772 charge cable detection</td></tr>
+        <tr><td>BrakeVacSensor</td><td>Brake vacuum pump control</td></tr>
+        <tr><td>DCFCRequest</td><td>CHAdeMO charge enable</td></tr>
+      </table>
+      <div class="callout danger" style="margin-top:10px;">
+        <div class="clabel">🔴 Common mistake</div>
+        <p>The web UI lets you assign any function to any pin — even incompatible combinations. The hardware will silently ignore invalid assignments. Always verify pin type matches function type.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: SWD Recovery -->
+<div class="slide" data-title="SWD Recovery Points">
+  <div class="badge">H01 — RECOVERY</div>
+  <h2>SWD Test Points<span class="sub">For firmware recovery — rarely needed</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>When You Need These</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-size:13px;color:var(--muted);">Web interface shows <code style="font-family:var(--mono);color:var(--accent);">firmware: null</code></div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-size:13px;color:var(--muted);">Board unresponsive — no Wi-Fi, acty LED not flashing</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-size:13px;color:var(--muted);">UART update failed partway through</div>
+        </div>
+      </div>
+      <div class="callout info">
+        <div class="clabel">Good news</div>
+        <p>Boards from the webshop are pre-programmed. You shouldn't need this for a first-time setup. See Module C01 for full recovery procedure.</p>
+      </div>
+    </div>
+    <div class="col">
+      <h3>SWD Pin Labels</h3>
+      <table style="margin-bottom:14px;">
+        <tr><th>Test point label</th><th>SWD signal</th><th>ST-Link pin</th></tr>
+        <tr><td>C</td><td>SWCLK (clock)</td><td>SWCLK</td></tr>
+        <tr><td>G</td><td>Ground</td><td>GND</td></tr>
+        <tr><td>D</td><td>SWDIO (data)</td><td>SWDIO</td></tr>
+      </table>
+      <h3>What You Need</h3>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="callout info" style="margin:0;">
+          <p>ST-Link V2 dongle (clones work) + STM32CubeProgrammer + bootloader .hex + firmware .hex + 12V power applied to board</p>
+        </div>
+      </div>
+      <div class="callout warn" style="margin-top:10px;">
+        <div class="clabel">Next modules</div>
+        <p><strong>C01</strong> — Full flashing & recovery procedure · <strong>W01</strong> — Wiring philosophy · <strong>C02</strong> — Web interface</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<nav>
+  <button class="nbtn" id="prevBtn" onclick="nav(-1)" disabled>← Prev</button>
+  <span class="sctr" id="ctr">1 / 6</span>
+  <span class="stitle" id="stitle">H01 Hardware</span>
+  <div class="sdots" id="dots"></div>
+  <button class="nbtn" id="nextBtn" onclick="nav(1)">Next →</button>
+</nav>
+<script>
+const slides=document.querySelectorAll('.slide');let cur=0;
+const dotsEl=document.getElementById('dots');
+slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i);dotsEl.appendChild(d);});
+function goTo(n){slides[cur].classList.remove('active');dotsEl.children[cur].classList.remove('active');cur=Math.max(0,Math.min(n,slides.length-1));slides[cur].classList.add('active');dotsEl.children[cur].classList.add('active');document.getElementById('ctr').textContent=`${cur+1} / ${slides.length}`;document.getElementById('stitle').textContent=slides[cur].dataset.title||'';document.getElementById('prevBtn').disabled=cur===0;document.getElementById('nextBtn').disabled=cur===slides.length-1;}
+function nav(d){goTo(cur+d);}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')nav(1);if(e.key==='ArrowLeft')nav(-1);});
+</script>
+</body>
+</html>

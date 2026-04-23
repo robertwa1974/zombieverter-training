@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F02 — Ecosystem Overview | ZombieVerter Training</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap');
+:root{--bg:#0b0f10;--surface:#131a1c;--accent:#00c896;--accent2:#00a0ff;--warn:#ffaa00;--danger:#ff4455;--text:#d8eeea;--muted:#4a6860;--border:#1e2d30;--mono:'Share Tech Mono',monospace;--display:'Barlow Condensed',sans-serif;--body:'Barlow',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;}
+.deck{width:100%;height:100%;position:relative;}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;padding:44px 56px 70px;background:var(--bg);}
+.slide.active{display:flex;}
+.slide::before{content:'';position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(to bottom,var(--accent),var(--accent2));}
+.slide::after{content:'';position:absolute;bottom:0;left:6px;right:0;height:2px;background:linear-gradient(to right,var(--accent),transparent);}
+.badge{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.25);padding:4px 10px;border-radius:4px;display:inline-block;margin-bottom:14px;letter-spacing:.1em;}
+h1{font-family:var(--display);font-size:68px;font-weight:900;line-height:1;color:#fff;margin-bottom:14px;}
+h1 .hl{color:var(--accent);}
+h2{font-family:var(--display);font-size:48px;font-weight:700;line-height:1.1;color:#fff;margin-bottom:18px;}
+h2 .sub{font-size:26px;font-weight:400;color:var(--muted);display:block;margin-top:4px;}
+h3{font-family:var(--display);font-size:24px;font-weight:600;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
+p{font-size:16px;line-height:1.6;color:var(--text);max-width:800px;}
+.row{display:flex;gap:36px;flex:1;align-items:flex-start;}
+.col{flex:1;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:left;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-transform:uppercase;letter-spacing:.08em;}
+td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;font-size:14px;}
+td:first-child{font-family:var(--mono);font-size:13px;color:var(--accent);}
+td:last-child{color:var(--muted);}
+.callout{padding:12px 16px;border-radius:8px;border-left:4px solid;margin:10px 0;}
+.callout.info{background:rgba(0,200,150,.06);border-color:var(--accent);}
+.callout.warn{background:rgba(255,170,0,.08);border-color:var(--warn);}
+.clabel{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-bottom:5px;text-transform:uppercase;}
+.callout.info .clabel{color:var(--accent);}
+.callout.warn .clabel{color:var(--warn);}
+.callout p{font-size:14px;line-height:1.5;max-width:none;}
+.code{background:rgba(0,0,0,.4);border:1px solid rgba(0,200,150,.15);border-radius:8px;padding:12px 16px;font-family:var(--mono);font-size:12px;line-height:1.9;margin:10px 0;}
+.code .c{color:var(--muted);} .code .k{color:var(--accent);} .code .v{color:var(--accent2);}
+.big{font-family:var(--display);font-size:80px;font-weight:900;line-height:1;color:var(--accent);}
+.biglbl{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.1em;}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:4px;margin:2px;}
+.pill.green{background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.25);color:var(--accent);}
+.pill.blue{background:rgba(0,160,255,.1);border:1px solid rgba(0,160,255,.25);color:var(--accent2);}
+.pill.warn{background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.25);color:var(--warn);}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:9px 18px;gap:10px;z-index:100;}
+.nbtn{background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.2);color:var(--accent);font-family:var(--mono);font-size:12px;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all .15s;}
+.nbtn:hover{background:rgba(0,200,150,.2);} .nbtn:disabled{opacity:.3;cursor:not-allowed;}
+.sctr{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.sdots{display:flex;gap:5px;margin-left:auto;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);cursor:pointer;transition:all .15s;}
+.dot.active{background:var(--accent);transform:scale(1.3);}
+.stitle{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1;text-align:center;}
+.kh{font-family:var(--mono);font-size:10px;color:var(--muted);position:fixed;top:14px;right:18px;opacity:.4;}
+</style>
+</head>
+<body>
+<div class="kh">← → to navigate</div>
+<div class="deck" id="deck">
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" data-title="F02 Ecosystem">
+  <div class="badge">TRACK F — FOUNDATION · MODULE F02</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <h1>The <span class="hl">ZombieVerter</span><br>Ecosystem</h1>
+    <p style="font-size:20px;color:var(--muted);margin-bottom:24px;">What it is, who made it, what it does — and where to get help</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div class="big">6+</div>
+        <div class="biglbl">Inverters supported</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="big">3</div>
+        <div class="biglbl">CAN buses</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="big">0</div>
+        <div class="biglbl">Lines of code to write</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding-top:16px;border-top:1px solid rgba(255,255,255,.06);font-family:var(--mono);font-size:11px;color:var(--muted);">
+    openinverter.org · evbmw.com · V2.30A (Aug 2025)
+  </div>
+</div>
+
+<!-- SLIDE 2: The Core Problem -->
+<div class="slide" data-title="The Problem It Solves">
+  <div class="badge">F02 — WHY IT EXISTS</div>
+  <h2>The Problem<span class="sub">Salvaged EV parts don't talk to each other</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>The situation</h3>
+      <p style="margin-bottom:14px;">You've salvaged a Nissan Leaf motor and inverter from a wreck. You want to put it in your BMW. The inverter was designed to talk to a Leaf BMS, a Leaf brake controller, a Leaf dashboard — none of which you have.</p>
+      <p style="margin-bottom:14px;">Every donor component speaks its own proprietary protocol. Building a custom controller for every possible combination would take months per build.</p>
+      <div class="callout info">
+        <div class="clabel">The ZombieVerter Solution</div>
+        <p>A general-purpose VCU with pre-built support for the most common donor components. <strong>It's the translator between your salvaged EV parts and your conversion project.</strong></p>
+      </div>
+    </div>
+    <div class="col">
+      <h3>What it coordinates</h3>
+      <div class="code">
+<span class="c"># ZombieVerter sits in the middle</span>
+
+<span class="k">Throttle pedal</span>  → VCU → <span class="v">Inverter torque cmd</span>
+<span class="k">Brake signal</span>    → VCU → <span class="v">Regen enable</span>
+<span class="k">ISA shunt</span>       → VCU → <span class="v">Pack voltage/current</span>
+<span class="k">BMS</span>             → VCU → <span class="v">Current limits</span>
+<span class="k">Charger</span>         → VCU → <span class="v">Charge control</span>
+<span class="k">Ignition/Start</span>  → VCU → <span class="v">Contactor sequence</span>
+      </div>
+      <div class="callout info" style="margin-top:10px;">
+        <div class="clabel">No coding required</div>
+        <p>All configuration through a browser-based web interface. No laptop software, no USB cable, no command line.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: The People -->
+<div class="slide" data-title="The Team">
+  <div class="badge">F02 — THE PEOPLE</div>
+  <h2>Who Made It<span class="sub">Open source, community driven</span></h2>
+  <div class="row">
+    <div class="col">
+      <table>
+        <tr><th>Person / Group</th><th>Role</th></tr>
+        <tr><td>Damien Maguire (EVBMW)</td><td>Primary hardware designer, firmware lead, project creator. YouTube: @Evbmw</td></tr>
+        <tr><td>Johannes Huebner (johu)</td><td>Creator of the openinverter firmware framework the VCU builds on</td></tr>
+        <tr><td>openinverter.org community</td><td>Ongoing firmware contributions, inverter support, testing, documentation</td></tr>
+      </table>
+      <div class="callout info" style="margin-top:14px;">
+        <div class="clabel">Genuinely open source</div>
+        <p>Schematics and firmware on GitHub. PCB design files for V1.a available via Patreon. You can build your own board.</p>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Where to find everything</h3>
+      <table>
+        <tr><th>Resource</th><th>URL</th></tr>
+        <tr><td>Wiki</td><td>openinverter.org/wiki</td></tr>
+        <tr><td>Forum</td><td>openinverter.org/forum</td></tr>
+        <tr><td>GitHub (firmware)</td><td>github.com/damienmaguire/Stm32-vcu</td></tr>
+        <tr><td>Shop</td><td>evbmw.com</td></tr>
+        <tr><td>YouTube</td><td>@Evbmw, Good Enuff Garage, Ohm-Grown EVs</td></tr>
+      </table>
+      <div class="callout warn" style="margin-top:14px;">
+        <div class="clabel">⚠ Best support resource</div>
+        <p>The forum is the single best place for troubleshooting. Most problems have been solved before. Search before posting.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Supported Hardware -->
+<div class="slide" data-title="Supported Hardware">
+  <div class="badge">F02 — WHAT IT SUPPORTS</div>
+  <h2>Supported Hardware<span class="sub">Motors, chargers, BMS, heaters — as of V2.30A</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>Drive inverters</h3>
+      <table style="margin-bottom:14px;">
+        <tr><th>Component</th><th>Interface</th></tr>
+        <tr><td>Nissan Leaf Gen1/2/3</td><td>CAN (180V min)</td></tr>
+        <tr><td>Lexus GS450h / GS300h</td><td>Sync serial</td></tr>
+        <tr><td>Toyota Prius Gen3</td><td>Sync serial</td></tr>
+        <tr><td>Mitsubishi Outlander front/rear</td><td>CAN</td></tr>
+        <tr><td>OpenInverter board</td><td>CAN</td></tr>
+      </table>
+      <h3>BMS / Voltage monitoring</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
+        <span class="pill green">ISA IVT shunt</span>
+        <span class="pill green">BMW S-BOX</span>
+        <span class="pill green">VW E-BOX</span>
+        <span class="pill green">Leaf ZE1 BMS</span>
+        <span class="pill green">SimpBMS</span>
+        <span class="pill green">Orion BMS</span>
+        <span class="pill green">Kangoo BMS</span>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Chargers / DC-DC</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px;">
+        <span class="pill blue">Nissan Leaf PDM</span>
+        <span class="pill blue">Outlander OBC</span>
+        <span class="pill blue">Tesla Gen3 charger</span>
+        <span class="pill blue">BMW i3 LIM (CCS)</span>
+        <span class="pill blue">CHAdeMO</span>
+        <span class="pill blue">Foccci</span>
+        <span class="pill blue">Elcon</span>
+        <span class="pill blue">MG ZS OBC</span>
+        <span class="pill blue">VW OBC</span>
+      </div>
+      <h3>Heaters</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        <span class="pill warn">VAG PTC heater (LIN)</span>
+        <span class="pill warn">Ampera 6.5kW heater</span>
+        <span class="pill warn">Outlander water heater</span>
+      </div>
+      <div class="callout info" style="margin-top:14px;">
+        <div class="clabel">Growing list</div>
+        <p>New hardware support is added with each firmware release. Check the wiki for the latest.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: How It Fits -->
+<div class="slide" data-title="System Architecture">
+  <div class="badge">F02 — SYSTEM OVERVIEW</div>
+  <h2>How It Fits In<span class="sub">The VCU is the central coordinator</span></h2>
+  <div class="code" style="font-size:13px;line-height:2;margin-bottom:16px;">
+<span class="c"># A typical ZombieVerter-based conversion</span>
+
+<span class="k">[Throttle pedal]</span>  ──── analog ───────────────────────────────────────────────┐
+<span class="k">[Brake signal]</span>    ──── digital ──────────────────────────────────────────────┤
+<span class="k">[Fwd/Rev switch]</span>  ──── digital ──────────────────────────────────────────────┤
+<span class="k">[Ignition/Start]</span>  ──── digital ──────────────────────────────────────────────▼
+                                                               ┌─────────────────┐
+<span class="k">[ISA Shunt]</span>  ──────────── CAN ──────────────────────────────▶│                 │──── CAN ──▶ <span class="v">[Inverter]</span>
+<span class="k">[BMS]</span>        ──────────── CAN ──────────────────────────────▶│  ZombieVerter   │──── CAN ──▶ <span class="v">[Charger]</span>
+<span class="k">[BMW i3 LIM]</span> ──────────── CAN ──────────────────────────────▶│      VCU        │──── LIN ──▶ <span class="v">[Heater]</span>
+                                                               │                 │── Serial ▶ <span class="v">[GS450h]</span>
+                                                               └────────┬────────┘
+                                                                        │ low-side outputs
+                                                     <span class="v">[Neg Contactor]  [Pos Contactor]  [Precharge]</span>
+  </div>
+  <div class="row" style="flex:0;">
+    <div class="callout info" style="flex:1;margin:0;">
+      <div class="clabel">Key principle</div>
+      <p>The VCU reads driver inputs, monitors pack state via the shunt, sequences contactors, and sends torque commands to the inverter — all configurable via browser, no code.</p>
+    </div>
+    <div class="callout warn" style="flex:1;margin:0;">
+      <div class="clabel">Cell-level BMS note</div>
+      <p>ZombieVerter uses the ISA shunt for pack-level monitoring. Cell-level functions (balancing, per-cell voltage) are handled by a separate BMS like SimpBMS, which talks to the VCU via CAN.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Getting a Board -->
+<div class="slide" data-title="Getting a Board">
+  <div class="badge">F02 — HARDWARE</div>
+  <h2>Getting a Board<span class="sub">Buy or build — your choice</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>Buy from EVBMW webshop</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+          <div style="font-family:var(--display);font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">Complete Kit</div>
+          <div style="font-size:13px;color:var(--muted);">Pre-built, tested, programmed. Ready to wire. Recommended for most users.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+          <div style="font-family:var(--display);font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">Partial Kit</div>
+          <div style="font-size:13px;color:var(--muted);">Some assembly required. Lower cost entry point.</div>
+        </div>
+        <div class="callout warn" style="margin:0;">
+          <div class="clabel">Lead time</div>
+          <p>Allow up to 4 weeks from order. Board comes pre-programmed — no firmware flashing needed on day 1.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Build your own</h3>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-family:var(--display);font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">PCB Files (Free)</div>
+        <div style="font-size:13px;color:var(--muted);">V1 design files on GitHub — free. V1.a (current revision) requires Patreon membership.</div>
+      </div>
+      <div class="callout info">
+        <div class="clabel">What's on the board</div>
+        <p>STM32F107 MCU + ESP8266 Wi-Fi module + 3× CAN transceivers + LIN + synchronous serial + 56-pin Aptiv automotive connector</p>
+      </div>
+      <div class="callout info" style="margin-top:10px;">
+        <div class="clabel">Next modules</div>
+        <p><strong>H01</strong> — Hardware walkthrough · <strong>C02</strong> — Web interface · <strong>C03</strong> — First start</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<nav>
+  <button class="nbtn" id="prevBtn" onclick="nav(-1)" disabled>← Prev</button>
+  <span class="sctr" id="ctr">1 / 6</span>
+  <span class="stitle" id="stitle">F02 Ecosystem</span>
+  <div class="sdots" id="dots"></div>
+  <button class="nbtn" id="nextBtn" onclick="nav(1)">Next →</button>
+</nav>
+<script>
+const slides=document.querySelectorAll('.slide');let cur=0;
+const dotsEl=document.getElementById('dots');
+slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i);dotsEl.appendChild(d);});
+function goTo(n){slides[cur].classList.remove('active');dotsEl.children[cur].classList.remove('active');cur=Math.max(0,Math.min(n,slides.length-1));slides[cur].classList.add('active');dotsEl.children[cur].classList.add('active');document.getElementById('ctr').textContent=`${cur+1} / ${slides.length}`;document.getElementById('stitle').textContent=slides[cur].dataset.title||'';document.getElementById('prevBtn').disabled=cur===0;document.getElementById('nextBtn').disabled=cur===slides.length-1;}
+function nav(d){goTo(cur+d);}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')nav(1);if(e.key==='ArrowLeft')nav(-1);});
+</script>
+</body>
+</html>

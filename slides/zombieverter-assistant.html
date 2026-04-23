@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZombieVerter Assistant</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap');
+
+  :root {
+    --bg: #0a0e0f;
+    --surface: #111618;
+    --surface2: #161d1f;
+    --border: #1e2d30;
+    --accent: #00c896;
+    --accent2: #00a0ff;
+    --danger: #ff4444;
+    --warn: #ffaa00;
+    --text: #d4e8e4;
+    --muted: #4a6a64;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Exo 2', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .header-text h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #fff;
+  }
+
+  .header-text p {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .status-pill {
+    margin-left: auto;
+    background: rgba(0,200,150,0.1);
+    border: 1px solid rgba(0,200,150,0.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Module pills */
+  .module-bar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .module-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(0,200,150,0.08);
+    border: 1px solid rgba(0,200,150,0.2);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .module-pill:hover {
+    background: rgba(0,200,150,0.18);
+    border-color: var(--accent);
+  }
+
+  .module-bar-label {
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    font-family: var(--mono);
+    margin-right: 4px;
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Messages */
+  .message {
+    display: flex;
+    gap: 12px;
+    max-width: 820px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { flex-direction: row-reverse; align-self: flex-end; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .avatar.bot {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000;
+  }
+
+  .avatar.user-av {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 10px;
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  .message.bot .bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top-left-radius: 2px;
+  }
+
+  .message.user .bubble {
+    background: rgba(0,200,150,0.1);
+    border: 1px solid rgba(0,200,150,0.25);
+    border-top-right-radius: 2px;
+    color: #c8efe6;
+  }
+
+  .bubble p { margin-bottom: 8px; }
+  .bubble p:last-child { margin-bottom: 0; }
+
+  .bubble code {
+    font-family: var(--mono);
+    background: rgba(0,200,150,0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .bubble ul { margin: 6px 0 6px 18px; }
+  .bubble li { margin-bottom: 4px; }
+
+  /* Source tags */
+  .sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .source-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,160,255,0.08);
+    border: 1px solid rgba(0,160,255,0.2);
+    color: var(--accent2);
+  }
+
+  .fw-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(255,170,0,0.08);
+    border: 1px solid rgba(255,170,0,0.2);
+    color: var(--warn);
+  }
+
+  /* Thinking indicator */
+  .thinking {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .thinking-dots {
+    display: flex;
+    gap: 4px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    border-top-left-radius: 2px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); background: var(--muted); }
+    30% { transform: translateY(-6px); background: var(--accent); }
+  }
+
+  /* Suggested questions */
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 4px;
+  }
+
+  .suggestion-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+
+  .suggestion-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,200,150,0.05);
+  }
+
+  /* Input area */
+  .input-area {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .input-wrap {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px 14px;
+    gap: 8px;
+    transition: border-color 0.15s;
+  }
+
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    resize: none;
+    line-height: 1.5;
+    max-height: 120px;
+    min-height: 24px;
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    color: #000;
+  }
+
+  .send-btn:hover { background: #00e8ad; transform: scale(1.05); }
+  .send-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+  .fw-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  /* Welcome card */
+  .welcome-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+  }
+
+  .welcome-card h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .welcome-card p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .welcome-card .limit-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--warn);
+    background: rgba(255,170,0,0.06);
+    border: 1px solid rgba(255,170,0,0.15);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ZV</div>
+  <div class="header-text">
+    <h1>ZombieVerter Assistant</h1>
+    <p>Grounded in official training modules · openinverter.org</p>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    V2.30A
+  </div>
+</header>
+
+<div class="module-bar">
+  <span class="module-bar-label">MODULES:</span>
+  <span class="module-pill" onclick="askAbout('F02')">F02 Ecosystem</span>
+  <span class="module-pill" onclick="askAbout('H01')">H01 Hardware</span>
+  <span class="module-pill" onclick="askAbout('W02')">W02 Throttle/Brake</span>
+  <span class="module-pill" onclick="askAbout('W03')">W03 Contactor/Precharge</span>
+  <span class="module-pill" onclick="askAbout('W06')">W06 12V/Ignition</span>
+  <span class="module-pill" onclick="askAbout('C00')">C00 Firmware History</span>
+  <span class="module-pill" onclick="askAbout('C01')">C01 Flashing</span>
+  <span class="module-pill" onclick="askAbout('C02')">C02 Web Interface</span>
+  <span class="module-pill" onclick="askAbout('C03')">C03 First Start</span>
+  <span class="module-pill" onclick="askAbout('C04')">C04 Throttle Cal</span>
+  <span class="module-pill" onclick="askAbout('C06')">C06 Fault Codes</span>
+  <span class="module-pill" onclick="askAbout('I03')">I03 GS450h</span>
+</div>
+
+<div class="chat-area" id="chatArea">
+  <div class="message bot">
+    <div class="avatar bot">ZV</div>
+    <div>
+      <div class="bubble">
+        <div class="welcome-card">
+          <h2>ZombieVerter Training Assistant</h2>
+          <p>Ask me anything about the ZombieVerter VCU. My answers are drawn from the official training modules — I'll cite which module each answer comes from and flag the relevant firmware version.</p>
+          <p>I won't guess about topics not covered in the modules. If I don't know, I'll say so and point you to the forum.</p>
+          <div class="limit-note">⚠ Knowledge base: V2.30A (Aug 2025). For newer firmware, verify against the changelog.</div>
+        </div>
+      </div>
+      <div class="suggestions" id="initialSuggestions">
+        <button class="suggestion-btn" onclick="sendSuggestion(this)">My VCU won't reach run mode — what should I check?</button>
+        <button class="suggestion-btn" onclick="sendSuggestion(this)">What does udcsw do and what should I set it to?</button>
+        <button class="suggestion-btn" onclick="sendSuggestion(this)">How do I calibrate my throttle pedal?</button>
+        <button class="suggestion-btn" onclick="sendSuggestion(this)">What hardware is on the ZombieVerter board?</button>
+        <button class="suggestion-btn" onclick="sendSuggestion(this)">How do I flash new firmware?</button>
+        <button class="suggestion-btn" onclick="sendSuggestion(this)">What changed in firmware V2.20A?</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="userInput" placeholder="Ask about ZombieVerter wiring, configuration, fault codes..." rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <span class="fw-badge">V2.30A</span>
+  </div>
+  <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+const KNOWLEDGE_BASE = `
+# ZOMBIEVERTER VCU TRAINING KNOWLEDGE BASE
+# Firmware reference: V2.30A (August 2025)
+# Source: openinverter.org official training modules
+
+---
+## MODULE F02 — ZombieVerter Ecosystem Overview
+
+The ZombieVerter VCU (Vehicle Control Unit) is an open-source EV conversion controller designed and maintained by Damien Maguire with contributions from the openinverter.org community. It is the "brain" of a DIY EV conversion, handling inverter control, contactor sequencing, throttle/regen mapping, BMS communication, and charge control.
+
+### What the ZombieVerter Does
+- Controls traction inverters from donor hybrid/EV vehicles (Nissan Leaf, Lexus GS450h, Toyota Prius, Mitsubishi Outlander, Tesla LDU, and others)
+- Sequences contactors and precharge circuit
+- Maps throttle pedal and brake inputs to torque commands
+- Reads pack voltage and current via ISA shunt, BMW S-BOX, or other CAN sources
+- Manages regenerative braking
+- Controls onboard chargers (VW, MG ZS, Tesla Gen3, and others)
+- Provides web-based configuration interface over Wi-Fi
+
+### Hardware Options
+The ZombieVerter board is available from evbmw.com at three price points: complete kit, partial kit, or PCB-only (for Patreon supporters who self-source components). The board uses an ESP32-based Wi-Fi module as its configuration interface.
+
+### Community
+- Forum: openinverter.org/forum
+- Wiki: openinverter.org/wiki
+- GitHub: firmware source and releases
+- YouTube: Damien Maguire (@evbmw), Good Enuff Garage, Jamie Jones / Ohm-Grown EVs
+
+---
+## MODULE H01 — VCU Hardware Walkthrough
+
+### Board Layout
+The ZombieVerter board has a 34-pin main connector (the "header") and several auxiliary connectors. Key sections:
+- ESP32 Wi-Fi module (blue board, top of PCB)
+- STM32 microcontroller (main processor)
+- CAN transceivers (3 CAN buses: CAN1, CAN2, CAN3)
+- Digital inputs (12V logic, pulled low — apply 12V to activate)
+- Analog inputs (0–5V for throttle pots)
+- Contactor outputs (relay-driven, rated for contactor coil current)
+- 12V regulated power input (Pin 1 = permanent 12V, Pin 2 = GND)
+
+### Key Pins (main header)
+- Pin 1: Permanent 12V supply (always on)
+- Pin 2: Ground
+- Pin 15: Ignition ON (12V = ignition on)
+- Pin 52: Start (momentary 12V pulse)
+- Pin 53: Reverse (12V = reverse selected)
+- Pin 54: Forward (12V = forward selected)
+- Pin 49: Brake input (12V = brake active)
+- Pin 26/27: Throttle pot 1 signal / 5V supply
+- Pin 28/29: Throttle pot 2 signal / 5V supply
+- Contactor outputs: Precharge relay, main contactor (positive), negative contactor
+
+### CAN Buses
+CAN1, CAN2, CAN3 are independently configurable for baud rate. Inverter, shunt, BMS, and charger can be assigned to different buses via parameters.
+
+---
+## MODULE W02 — Throttle and Brake Wiring
+
+### Throttle Pedal
+The ZombieVerter supports Hall-effect (magnetic) and potentiometer throttle pedals. Dual-pot configuration is strongly recommended for safety — it provides redundancy and the VCU cross-checks both signals.
+
+Single-pot wiring (minimum):
+- 5V supply from VCU (Pin 26 or 28)
+- Ground
+- Signal wire to analog input (Pin 27 or 29)
+
+Dual-pot wiring (recommended):
+- Use both pot inputs
+- Both pots must track together — if they diverge, VCU sets a fault
+
+### Brake Input
+The brake input (Pin 49) is a 12V digital input. Apply 12V when the brake is pressed. The VCU will not allow torque output if din_brake is active (shown as "on" in spot values).
+
+If din_brake is stuck "on" with no brake pedal pressed:
+- Check if the brake switch is normally-closed (inverts the logic)
+- Check for floating input — add a pull-down resistor to ground
+- Verify nothing else is connected to Pin 49
+
+### Forward / Reverse
+- Pin 54: Forward (apply 12V = forward selected)
+- Pin 53: Reverse (apply 12V = reverse selected)
+- A direction must be selected for the VCU to allow torque output
+- Check din_forward and din_reverse in spot values to verify
+
+---
+## MODULE W03 — Contactor and Precharge Circuit
+
+### Purpose
+Before HV can flow to the inverter capacitors, a precharge sequence must complete. This limits inrush current that would otherwise weld or damage contactors.
+
+### Sequence
+1. VCU closes precharge relay (resistor in series with positive bus)
+2. Inverter capacitors charge through resistor
+3. VCU monitors UDC (pack voltage seen by inverter) via shunt
+4. When UDC rises above udcsw parameter, precharge is considered complete
+5. VCU closes main contactor (bypasses precharge resistor)
+6. VCU opens precharge relay
+7. System enters run mode
+
+### Critical Parameter: udcsw
+udcsw = the voltage threshold that tells the VCU "precharge is complete, close the main contactor."
+- Default value: 330V
+- For bench testing with no HV: set to 0 or 15V so the sequence can complete
+- For real vehicle: set to ~95% of nominal pack voltage
+- If udcsw is set higher than your actual pack voltage, precharge will never complete and opmode will stay in "precharge" indefinitely
+
+### ISA Shunt
+The ISA IVT-S shunt is the recommended current/voltage sensor. It must be:
+- Powered from PERMANENT 12V (not ignition-switched — it needs power to maintain calibration)
+- Connected to CAN bus (typically CAN1 or CAN2)
+- Initialised after physical installation (send init command via web interface)
+- Set: shuntType = ISA in parameters
+
+### Common Precharge Failures
+- opmode stuck in "precharge": udcsw too high for available voltage
+- opmode stuck in "precharge failed": shunt not communicating, UDC = 0
+- Main contactor never closes: UDC reading not rising (check shunt wiring and CAN assignment)
+
+---
+## MODULE W06 — 12V Auxiliary and Ignition Wiring
+
+### Power Supply Philosophy
+The ZombieVerter needs two 12V feeds:
+1. PERMANENT 12V (Pin 1) — always on, even when vehicle is "off". Powers the ESP32 Wi-Fi module so you can always access the web interface. Also required for ISA shunt.
+2. Ground (Pin 2) — chassis ground, clean connection required.
+
+Ignition signal (Pin 15) tells the VCU the vehicle is "on" but does not power the board.
+
+### Ignition ON Signal (Pin 15)
+Apply 12V to Pin 15 to signal ignition on. This activates the VCU logic but does NOT start contactor sequencing by itself. The START signal is also required.
+
+### Start Signal (Pin 52)
+Apply a momentary 12V pulse to Pin 52 to trigger the contactor sequence. Like turning an ignition key — brief pulse (500ms minimum), not a sustained signal.
+
+### Forward/Reverse Switch Wiring
+Typically wired to a PRND-style selector or a simple toggle:
+- Forward: apply 12V to Pin 54 when D is selected
+- Reverse: apply 12V to Pin 53 when R is selected
+- Neutral: neither pin active (no torque output)
+- A direction must be selected for torque to be available
+
+### Safety Interlock Wiring (BMW S-BOX / HVIL)
+The BMW safety box (S-BOX) or HVIL (High Voltage Interlock Loop) can be integrated via dedicated VCU inputs. If the HVIL loop is broken, the VCU immediately drops out of run mode and opens the contactors.
+
+---
+## MODULE C00 — Firmware Version History
+
+### Current Release: V2.30A (August 2025)
+Changes: Throttle smoothing improvements, derate logic simplification, Nissan Leaf inverter fixes.
+
+### V2.22A (March 2025)
+Changes: IS300h inverter fix, LIN bus fix. IMPORTANT: After upgrading to this version, you must reselect inverter type and save parameters. Toyota inverter users must reboot VCU after upgrade.
+
+### V2.20A (December 2024)
+Major additions: revRegen parameter (reverse regen on throttle lift), PumpPWM (coolant pump PWM control), FanTemp (cooling fan temperature threshold), TachoPPR (tachometer pulses per revolution). New inverter support: Foccci, BMW E90 CAN, Kangoo BMS.
+
+### V2.15A (April 2024)
+MILESTONE: Regenerative braking first fully working in this release. GS450h automatic gear shifting implemented. Mitsubishi Outlander rear drive unit added.
+
+### V2.00A (May 2023)
+MAJOR REWRITE: IO Matrix introduced (flexible input/output assignment), module decoupling, charge interface decoupling. Significant parameter reorganisation. Content from before this version should be treated with caution — parameter names and locations changed substantially.
+
+### V1 Era (before May 2023)
+Treat V1 forum posts and tutorials with caution. Many parameters were renamed, relocated, or removed in V2.00A.
+
+### Upgrade Warning
+After any major firmware upgrade: reselect inverter type and save parameters. Parameters saved under old firmware may not migrate correctly.
+
+---
+## MODULE C01 — Flashing Firmware
+
+### Requirements
+- USB-C cable (data-capable, not charge-only)
+- Windows/Linux/Mac computer
+- Web browser (Chrome or Edge recommended for Web Serial)
+- Firmware .bin file from GitHub releases page
+
+### Method 1: Web Flasher (Recommended)
+1. Connect VCU to computer via USB-C
+2. Navigate to openinverter.org/firmware or the GitHub releases page
+3. Use the browser-based Web Serial flasher
+4. Select the correct .bin file for your board revision
+5. Follow on-screen instructions
+
+### Method 2: esptool (Command Line)
+Use if the web flasher fails. Requires Python and esptool installed.
+Command: esptool.py --port COMx write_flash 0x0 zombieverter_vX.XXX.bin
+
+### After Flashing
+- Parameters are NOT preserved across major firmware versions
+- Always reselect inverter type after flashing
+- Check that all critical parameters (udcsw, udcmin, potmin, potmax, throtmax) are set correctly
+- Save to flash before testing
+
+### Board Revision
+There are multiple ZombieVerter board revisions. The firmware file must match the board revision. Check the GitHub releases page for the correct file for your board.
+
+---
+## MODULE C02 — Web Interface Walkthrough
+
+### Connecting
+The ESP32 broadcasts a Wi-Fi access point. Connect your device to the ZombieVerter Wi-Fi network (default SSID: ZombieVerter or similar). Then navigate to 192.168.4.1 in a browser.
+
+### Interface Sections
+- Parameters: configurable settings (your inputs to the system)
+- Spot Values: real-time readings (system outputs to you)
+- Commands: actions (save to flash, load defaults, send init commands)
+
+### Parameters vs Spot Values
+This distinction is critical:
+- Parameters = what you SET (inverter type, voltage limits, throttle range, etc.)
+- Spot Values = what the VCU REPORTS (opmode, UDC, throttle position, din states, etc.)
+
+### Saving Parameters
+Changes made in the web interface are NOT saved until you use Commands > Save Parameters to Flash. If you power-cycle without saving, changes are lost.
+
+### Key Spot Values to Monitor
+- opmode: current operational state (off, precharge, precharge failed, run)
+- udc: pack voltage as seen by VCU
+- pot/pot2: throttle ADC values (use for calibration)
+- din_brake: brake input state (must be "off" for torque)
+- din_forward/din_reverse: direction inputs
+- invstat: inverter status
+- status: last known status message (useful for diagnosing why precharge failed)
+
+---
+## MODULE C03 — Essential Parameters: First Start
+
+### Before You Start
+Complete the entire first-start sequence with 12V only — no HV battery needed. Verify wiring, parameters, and sequencing logic before introducing HV risk.
+
+### Step 1: Set Inverter Type
+Parameter: inverter (under Comms)
+- Nissan Leaf (any gen): 1
+- Lexus GS450h: 2
+- Toyota Prius Gen3: 5
+- Mitsubishi Outlander (rear): 8
+- OpenInverter board: 4
+- Nothing yet: 0
+
+### Step 2: Set Shunt Type
+Parameter: shuntType
+- ISA IVT shunt: ISA
+- BMW S-BOX: SBOX
+- VW/Audi: VAG
+- Nissan Leaf inverter: LEAF
+
+### Step 3: CAN Bus Assignments
+Parameters: inverterCan, shuntCan
+Assign each device to the correct physical CAN bus (CAN1, CAN2, or CAN3).
+Note: CAN1/CAN2 labelling is reversed in some older wiring diagrams.
+
+### Step 4: Voltage Limits
+- udcmin: minimum pack voltage (set low for bench: 20V)
+- udclim: maximum voltage (set high: 500V for bench)
+- udcsw: precharge completion threshold — SET TO 15V FOR BENCH TESTING (default 330V will block all bench testing)
+
+### Step 5: Throttle Minimum Settings
+- potmode: single or dual
+- potmin: just ABOVE the resting ADC value (watch pot spot value)
+- potmax: just BELOW the full-travel ADC value
+- throtmin: 0
+- throtmax: 100 — THIS DEFAULTS TO 0. Most common cause of "throttle does nothing."
+
+### Step 6: Verify Brake Signal
+Check din_brake in spot values:
+- "off" = no brake = correct for torque
+- "on" = brake active = no torque will be produced
+Must be "off" for torque output.
+
+### Step 7: Verify Direction Inputs
+Apply 12V to Pin 54 (forward) → din_forward should show "on"
+Apply 12V to Pin 53 (reverse) → din_reverse should show "on"
+A direction must be selected for torque output.
+
+### Step 8: First Precharge Test
+1. Apply ignition ON (Pin 15)
+2. Brief START pulse (Pin 52)
+3. Watch opmode in spot values → should progress to "run"
+
+If stuck in precharge: udcsw is set above available voltage
+If precharge failed: shunt not communicating (UDC = 0)
+If opmode never reaches run: check din_brake is "off", check direction is selected
+
+### Step 9: Throttle Test (No Motor Movement Expected on Bench)
+With opmode = run, apply throttle. Watch "torque" spot value increase. No motor movement expected without inverter and HV connected. This confirms the throttle map is working.
+
+---
+## MODULE C04 — Throttle Calibration
+
+### Why Calibrate?
+The throttle pedal ADC values vary between pedal types and installations. Calibration maps the physical pedal travel to the VCU's internal 0–100% range.
+
+### Key Insight: ZombieVerter pot range is INVERTED vs most inverters
+potmin should be set INSIDE the mechanical travel (above the actual resting value)
+potmax should be set INSIDE the mechanical travel (below the actual full-travel value)
+This ensures the VCU sees "valid throttle" only when the pedal is genuinely moving.
+
+### Calibration Procedure
+1. Open web interface, go to Spot Values, enable Auto Refresh
+2. Watch the "pot" value while moving the throttle pedal
+3. Note the ADC value at rest (fully released) — e.g. 200
+4. Note the ADC value at full travel — e.g. 3800
+5. Set potmin = 250 (slightly above resting value)
+6. Set potmax = 3750 (slightly below full travel value)
+7. Save to flash
+
+### Dual Throttle
+If using dual pots, repeat for pot2 (watch pot2 spot value).
+The VCU cross-checks pot and pot2 — if they diverge by more than the tolerance, a fault is set.
+
+### throtmax — The Most Forgotten Parameter
+Default value: 0 (zero)
+This means: maximum torque output = 0%
+Result: throttle pedal does nothing even when correctly calibrated.
+Fix: set throtmax = 100 (or desired maximum torque percentage)
+This is the single most common first-start failure.
+
+### throtmin
+Default: 0
+Setting throtmin to a small negative value (e.g. -5) enables throttle-lift regen — lifting the throttle applies light braking.
+
+---
+## MODULE C06 — Fault Codes and Status Flags
+
+### Reading Fault Information
+In Spot Values, watch:
+- opmode: current state
+- status: last status message (shows WHY something happened)
+- lastError: last error code
+
+### Common Status Messages and Causes
+
+UDC below udcsw:
+Meaning: Pack voltage has not reached precharge threshold
+Fix: Lower udcsw for bench testing (set to 0 or 15V). For real vehicle, check HV connections and shunt communication.
+
+Precharge failed:
+Meaning: UDC did not rise to udcsw within timeout period
+Causes: Shunt not communicating (UDC reads 0), udcsw set too high, HV not connected, precharge resistor failed
+
+No inverter communication:
+Meaning: VCU is not receiving CAN messages from inverter
+Causes: Wrong inverter type selected, wrong CAN bus assignment, incorrect baud rate, wiring fault
+
+Throttle error:
+Meaning: Dual throttle pot mismatch
+Causes: One pot failed, wiring fault on one pot signal, pot2 not calibrated
+
+din_brake stuck on:
+Meaning: Brake input showing active with no brake pressed
+Causes: Normally-closed brake switch, floating input, wiring fault
+
+### opmode States
+- off: VCU powered but not active
+- precharge: Contactor sequence in progress
+- precharge failed: Sequence timed out (see above)
+- run: Normal operating state — inverter active
+- charge: Charge mode active
+
+---
+## MODULE I03 — GS450h Transaxle Integration
+
+### Overview
+The Lexus GS450h transaxle contains two motor-generators (MG1 and MG2) and a power split device (planetary gearset). In EV conversion use, MG2 provides traction drive.
+
+### Parameter: inverter = 2
+Set inverter type to 2 for GS450h. This configures the correct CAN IDs and baud rate for the GS450h inverter.
+
+### Gear Shifting
+The GS450h transaxle has automatic gear shifting implemented in firmware V2.15A and later. The VCU controls gear changes via CAN commands to the transaxle.
+
+### Cooling
+The GS450h inverter requires active coolant circulation. The VCU can control the coolant pump via PWM (see PumpPWM parameter, added in V2.20A).
+
+### Key Gotchas
+- The GS450h requires a 500V-capable battery pack (nominal pack voltage should be in the 300–400V range for full performance)
+- MG1 and MG2 have different torque characteristics — most conversions use MG2 only for traction
+- The resolver feedback system is factory-calibrated and not user-adjustable
+
+### Community Resources
+Damien Maguire's E39 GS450h swap series on YouTube is the most comprehensive documentation of this integration.
+`;
+
+const SYSTEM_PROMPT = `You are the ZombieVerter VCU Training Assistant. You help people building DIY electric vehicle conversions using the ZombieVerter open-source vehicle control unit.
+
+CRITICAL RULES:
+1. Answer ONLY from the knowledge base provided below. Do not use general knowledge about EV conversions unless it directly supports the knowledge base content.
+2. If a question cannot be answered from the knowledge base, say clearly: "That topic isn't covered in the current training modules. For this question, I'd recommend posting on the openinverter.org forum."
+3. Always cite which module(s) your answer comes from. End every answer with a "Sources:" line listing the relevant module codes.
+4. Always note the firmware version context (currently V2.30A).
+5. When relevant, flag if information may have changed between firmware versions.
+6. Be specific and practical — these are builders in garages, not theorists.
+7. If someone is troubleshooting, walk through the most common causes first.
+8. Keep answers focused. Don't pad with unnecessary caveats.
+9. Format your response with Sources at the end like this:
+   Sources: C03, C06
+   Firmware: V2.30A
+
+KNOWLEDGE BASE:
+${KNOWLEDGE_BASE}`;
+
+let conversationHistory = [];
+let isThinking = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendSuggestion(btn) {
+  document.getElementById('userInput').value = btn.textContent;
+  sendMessage();
+}
+
+function askAbout(moduleCode) {
+  document.getElementById('userInput').value = `Tell me about module ${moduleCode}`;
+  sendMessage();
+}
+
+function scrollToBottom() {
+  const area = document.getElementById('chatArea');
+  area.scrollTop = area.scrollHeight;
+}
+
+function addThinking() {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'message bot';
+  div.id = 'thinkingIndicator';
+  div.innerHTML = `
+    <div class="avatar bot">ZV</div>
+    <div class="thinking-dots">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>`;
+  area.appendChild(div);
+  scrollToBottom();
+}
+
+function removeThinking() {
+  const el = document.getElementById('thinkingIndicator');
+  if (el) el.remove();
+}
+
+function renderMessage(role, content) {
+  const area = document.getElementById('chatArea');
+  const wrap = document.createElement('div');
+  wrap.className = `message ${role}`;
+
+  // Parse sources from content
+  let mainContent = content;
+  let sourcesHtml = '';
+
+  const sourcesMatch = content.match(/Sources:\s*([^\n]+)/);
+  const fwMatch = content.match(/Firmware:\s*([^\n]+)/);
+
+  if (sourcesMatch || fwMatch) {
+    mainContent = content
+      .replace(/Sources:\s*[^\n]+\n?/g, '')
+      .replace(/Firmware:\s*[^\n]+\n?/g, '')
+      .trim();
+
+    let tags = '';
+    if (sourcesMatch) {
+      const codes = sourcesMatch[1].split(',').map(s => s.trim());
+      codes.forEach(c => { tags += `<span class="source-tag">📖 ${c}</span>`; });
+    }
+    if (fwMatch) {
+      tags += `<span class="fw-tag">⚡ ${fwMatch[1].trim()}</span>`;
+    }
+    sourcesHtml = `<div class="sources">${tags}</div>`;
+  }
+
+  // Simple markdown-ish rendering
+  const rendered = mainContent
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^#{1,3}\s+(.+)$/gm, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n- /g, '<br>• ')
+    .replace(/\n(\d+)\. /g, '<br>$1. ');
+
+  if (role === 'bot') {
+    wrap.innerHTML = `
+      <div class="avatar bot">ZV</div>
+      <div>
+        <div class="bubble"><p>${rendered}</p>${sourcesHtml}</div>
+      </div>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="avatar user-av">YOU</div>
+      <div><div class="bubble">${mainContent}</div></div>`;
+  }
+
+  area.appendChild(wrap);
+  scrollToBottom();
+}
+
+async function sendMessage() {
+  if (isThinking) return;
+
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Clear suggestions
+  const sugg = document.getElementById('initialSuggestions');
+  if (sugg) sugg.remove();
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+  isThinking = true;
+
+  renderMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+
+  addThinking();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: conversationHistory
+      })
+    });
+
+    const data = await response.json();
+    removeThinking();
+
+    const reply = data.content?.[0]?.text || 'Sorry, I encountered an error. Please try again.';
+    conversationHistory.push({ role: 'assistant', content: reply });
+    renderMessage('bot', reply);
+
+  } catch (err) {
+    removeThinking();
+    renderMessage('bot', 'Connection error. Please check your network and try again.\n\nSources: N/A\nFirmware: V2.30A');
+  }
+
+  isThinking = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('userInput').focus();
+}
+</script>
+</body>
+</html>

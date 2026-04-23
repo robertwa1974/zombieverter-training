@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C00 — Firmware Version History | ZombieVerter Training</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap');
+:root{--bg:#0b0f10;--surface:#131a1c;--accent:#00c896;--accent2:#00a0ff;--warn:#ffaa00;--danger:#ff4455;--text:#d8eeea;--muted:#4a6860;--border:#1e2d30;--mono:'Share Tech Mono',monospace;--display:'Barlow Condensed',sans-serif;--body:'Barlow',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;}
+.deck{width:100%;height:100%;position:relative;}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;padding:44px 56px 70px;background:var(--bg);}
+.slide.active{display:flex;}
+.slide::before{content:'';position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(to bottom,var(--accent),var(--accent2));}
+.slide::after{content:'';position:absolute;bottom:0;left:6px;right:0;height:2px;background:linear-gradient(to right,var(--accent),transparent);}
+.badge{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.25);padding:4px 10px;border-radius:4px;display:inline-block;margin-bottom:14px;letter-spacing:.1em;}
+h1{font-family:var(--display);font-size:68px;font-weight:900;line-height:1;color:#fff;margin-bottom:14px;}
+h1 .hl{color:var(--accent);}
+h2{font-family:var(--display);font-size:48px;font-weight:700;line-height:1.1;color:#fff;margin-bottom:18px;}
+h2 .sub{font-size:26px;font-weight:400;color:var(--muted);display:block;margin-top:4px;}
+h3{font-family:var(--display);font-size:24px;font-weight:600;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
+p{font-size:16px;line-height:1.6;color:var(--text);max-width:800px;}
+.row{display:flex;gap:36px;flex:1;align-items:flex-start;}
+.col{flex:1;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:left;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-transform:uppercase;letter-spacing:.08em;}
+td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;font-size:13px;}
+td:first-child{font-family:var(--mono);font-size:12px;color:var(--accent);}
+td:last-child{color:var(--muted);}
+.callout{padding:12px 16px;border-radius:8px;border-left:4px solid;margin:10px 0;}
+.callout.info{background:rgba(0,200,150,.06);border-color:var(--accent);}
+.callout.warn{background:rgba(255,170,0,.08);border-color:var(--warn);}
+.callout.danger{background:rgba(255,68,85,.08);border-color:var(--danger);}
+.clabel{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-bottom:5px;text-transform:uppercase;}
+.callout.info .clabel{color:var(--accent);}.callout.warn .clabel{color:var(--warn);}.callout.danger .clabel{color:var(--danger);}
+.callout p{font-size:14px;line-height:1.5;max-width:none;}
+.code{background:rgba(0,0,0,.4);border:1px solid rgba(0,200,150,.15);border-radius:8px;padding:12px 16px;font-family:var(--mono);font-size:12px;line-height:1.9;margin:10px 0;}
+.code .c{color:var(--muted);} .code .k{color:var(--accent);} .code .v{color:var(--accent2);}
+.steps{display:flex;flex-direction:column;gap:11px;}
+.step{display:flex;gap:13px;align-items:flex-start;}
+.snum{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:bold;color:#000;flex-shrink:0;margin-top:2px;}
+.stit{font-family:var(--display);font-size:17px;font-weight:600;color:#fff;margin-bottom:2px;}
+.sdesc{font-size:13px;color:var(--muted);line-height:1.4;}
+.scode{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,200,150,.08);padding:2px 6px;border-radius:3px;margin-top:3px;display:inline-block;}
+.big{font-family:var(--display);font-size:80px;font-weight:900;line-height:1;color:var(--accent);}
+.biglbl{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.1em;}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:9px 18px;gap:10px;z-index:100;}
+.nbtn{background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.2);color:var(--accent);font-family:var(--mono);font-size:12px;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all .15s;}
+.nbtn:hover{background:rgba(0,200,150,.2);} .nbtn:disabled{opacity:.3;cursor:not-allowed;}
+.sctr{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.sdots{display:flex;gap:5px;margin-left:auto;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);cursor:pointer;transition:all .15s;}
+.dot.active{background:var(--accent);transform:scale(1.3);}
+.stitle{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1;text-align:center;}
+.kh{font-family:var(--mono);font-size:10px;color:var(--muted);position:fixed;top:14px;right:18px;opacity:.4;}</style>
+</head>
+<body>
+<div class="kh">← → to navigate</div>
+<div class="deck" id="deck">
+
+<div class="slide active" data-title="C00 Firmware History">
+  <div class="badge">TRACK C — CONFIGURATION · MODULE C00</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <h1>Firmware<br><span class="hl">Version History</span></h1>
+    <p style="font-size:20px;color:var(--muted);margin-bottom:24px;">Before following any tutorial, video, or forum post — check its date against this module. A lot changed between versions.</p>
+    <div style="display:flex;gap:16px;">
+      <div style="background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.3);border-radius:8px;padding:14px 18px;flex:1;">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:4px;">🟢 CURRENT</div>
+        <div style="font-family:var(--display);font-size:28px;font-weight:900;color:#fff;">V2.30A</div>
+        <div style="font-size:13px;color:var(--muted);">August 2025</div>
+      </div>
+      <div style="background:rgba(255,68,85,.08);border:1px solid rgba(255,68,85,.25);border-radius:8px;padding:14px 18px;flex:1;">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--danger);margin-bottom:4px;">🔴 MAJOR BREAK</div>
+        <div style="font-family:var(--display);font-size:28px;font-weight:900;color:#fff;">V2.00A</div>
+        <div style="font-size:13px;color:var(--muted);">May 2023 — IO Matrix rewrite</div>
+      </div>
+      <div style="background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.25);border-radius:8px;padding:14px 18px;flex:1;">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--warn);margin-bottom:4px;">⚠ MILESTONE</div>
+        <div style="font-family:var(--display);font-size:28px;font-weight:900;color:#fff;">V2.15A</div>
+        <div style="font-size:13px;color:var(--muted);">April 2024 — Regen first works</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding-top:16px;border-top:1px solid rgba(255,255,255,.06);font-family:var(--mono);font-size:11px;color:var(--muted);">Read this before any other C-track module · Source: github.com/damienmaguire/Stm32-vcu/releases</div>
+</div>
+
+<div class="slide" data-title="Version Timeline">
+  <div class="badge">C00 — TIMELINE</div>
+  <h2>Version Timeline<span class="sub">What changed and when</span></h2>
+  <div class="row">
+    <div class="col">
+      <table>
+        <tr><th>Version</th><th>Date</th><th>Key theme</th></tr>
+        <tr><td style="color:var(--muted);">1.00A – 1.11A</td><td style="color:var(--muted);">Jun–Nov 2022</td><td style="color:var(--muted);">V1 era — basic operation, no regen</td></tr>
+        <tr><td style="color:var(--danger);">2.00A ★</td><td>May 2023</td><td>MAJOR rewrite: IO Matrix, module decoupling</td></tr>
+        <tr><td>2.01A</td><td>Sep 2023</td><td>Outlander charger, VW EBox, BMS module</td></tr>
+        <tr><td>2.04A</td><td>Jan 2024</td><td>IO Matrix analog, gear shifter class, Tesla DCDC</td></tr>
+        <tr><td>2.05A</td><td>Mar 2024</td><td>LIN heater, Park gear, 250ms contactor delay</td></tr>
+        <tr><td style="color:var(--warn);">2.15A ★</td><td>Apr 2024</td><td>REGEN works. GS450h auto shifting. Outlander rear.</td></tr>
+        <tr><td>2.17A</td><td>May 2024</td><td>Outlander rear motor bug fix</td></tr>
+        <tr><td>2.20A</td><td>Dec 2024</td><td>Foccci, revRegen, PumpPWM, FanTemp, E90 CAN</td></tr>
+        <tr><td>2.22A</td><td>Mar 2025</td><td>IS300h fix, LIN fix, Leaf Gen3 PDM</td></tr>
+        <tr><td style="color:var(--accent);">2.30A ★</td><td>Aug 2025</td><td>Throttle smoothing, derate simplification (CURRENT)</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <h3>Content Staleness Guide</h3>
+      <table>
+        <tr><th>Content date</th><th>Trust level</th></tr>
+        <tr><td>Before Jun 2022</td><td style="color:var(--danger);">🔴 Outdated — pre-release</td></tr>
+        <tr><td>Jun 2022 – Apr 2023</td><td style="color:var(--danger);">🔴 Outdated — V1 era</td></tr>
+        <tr><td>May – Dec 2023</td><td style="color:var(--warn);">🟡 Verify — V2 but early</td></tr>
+        <tr><td>Jan – Mar 2024</td><td style="color:var(--warn);">🟡 Verify — regen not working</td></tr>
+        <tr><td>Apr 2024 – Nov 2024</td><td style="color:var(--accent);">🟢 Mostly current</td></tr>
+        <tr><td>Dec 2024 onwards</td><td style="color:var(--accent);">🟢 Current — full feature set</td></tr>
+      </table>
+      <div class="callout warn" style="margin-top:10px;">
+        <div class="clabel">⚠ Regen content warning</div>
+        <p>Any video or forum content about regen from before April 2024 refers to a non-working or experimental implementation. Regen only became reliable in V2.15A.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-title="The V1→V2 Break">
+  <div class="badge">C00 — THE BIG BREAK</div>
+  <h2>V2.00A — The Major Break<span class="sub">May 2023 — treat all V1 content with caution</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>What Changed in V2.00A</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-family:var(--display);font-size:18px;font-weight:700;color:#fff;margin-bottom:3px;">IO Matrix</div>
+          <div style="font-size:13px;color:var(--muted);">Configurable input/output pin assignments via web UI. Before V2, many pins had fixed functions. Din/Dout sections in web UI are V2 only.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-family:var(--display);font-size:18px;font-weight:700;color:#fff;margin-bottom:3px;">Module Decoupling</div>
+          <div style="font-size:13px;color:var(--muted);">Leaf stack components (inverter, PDM, charger) can now be used independently. V1 required all together.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+          <div style="font-family:var(--display);font-size:18px;font-weight:700;color:#fff;margin-bottom:3px;">Parameter Reorganisation</div>
+          <div style="font-size:13px;color:var(--muted);">Many parameters renamed, relocated, or removed. V1 forum posts with specific parameter names may be wrong for V2.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>New in V2.20A (Dec 2024)</h3>
+      <table style="margin-bottom:12px;">
+        <tr><th>New parameter</th><th>What it does</th></tr>
+        <tr><td>revRegen</td><td>Toggle regen on/off in reverse direction</td></tr>
+        <tr><td>PumpPWM</td><td>Coolant pump PWM (was GS450h-only before)</td></tr>
+        <tr><td>FanTemp</td><td>Temperature threshold for cooling fan</td></tr>
+        <tr><td>TachoPPR</td><td>Tachometer pulses per revolution</td></tr>
+      </table>
+      <div class="callout danger">
+        <div class="clabel">🔴 Upgrade warning — ALL major versions</div>
+        <p>After any major firmware upgrade, you MUST:<br>
+        1. Reselect inverter type in Parameters → Comms<br>
+        2. Save to flash<br>
+        3. Reboot VCU<br>
+        Toyota inverter users must reboot after upgrade or inverter won't initialise.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-title="Staying Current">
+  <div class="badge">C00 — REFERENCE</div>
+  <h2>Staying Current<span class="sub">Parameters, sources, and version tracking</span></h2>
+  <div class="row">
+    <div class="col">
+      <h3>Parameter Status Reference</h3>
+      <table>
+        <tr><th>Parameter</th><th>Status</th><th>Notes</th></tr>
+        <tr><td>ISAMode</td><td style="color:var(--accent);">🟢 Stable</td><td>Present since V1</td></tr>
+        <tr><td>udcsw</td><td style="color:var(--accent);">🟢 Stable</td><td>Present since V1</td></tr>
+        <tr><td>revRegen</td><td style="color:var(--accent);">🟢 Added V2.20A</td><td>Not in older firmware</td></tr>
+        <tr><td>PumpPWM</td><td style="color:var(--accent);">🟢 Added V2.20A</td><td>Was GS450h-only before</td></tr>
+        <tr><td>HVRequest</td><td style="color:var(--danger);">🔴 Non-functioning</td><td>Listed in wiki as not working — do not rely on</td></tr>
+        <tr><td>inverter=6 (Outlander)</td><td style="color:var(--danger);">🔴 Deprecated</td><td>Replaced by inverter=8 (RearOutlander)</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <h3>Where to Stay Updated</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--accent);">github.com/damienmaguire/Stm32-vcu/releases</div>
+          <div style="font-size:12px;color:var(--muted);">Official release history with changelogs</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--accent);">openinverter.org/forum</div>
+          <div style="font-size:12px;color:var(--muted);">Development thread — release announcements</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--accent);">YouTube @Evbmw</div>
+          <div style="font-size:12px;color:var(--muted);">New firmware releases accompanied by walkthrough videos</div>
+        </div>
+      </div>
+      <div class="callout info">
+        <div class="clabel">This training series targets V2.30A</div>
+        <p>All modules are verified against August 2025 firmware. When a new release drops, check C00 first to understand what changed.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<nav>
+  <button class="nbtn" id="prevBtn" onclick="nav(-1)" disabled>← Prev</button>
+  <span class="sctr" id="ctr">1 / 4</span>
+  <span class="stitle" id="stitle"></span>
+  <div class="sdots" id="dots"></div>
+  <button class="nbtn" id="nextBtn" onclick="nav(1)">Next →</button>
+</nav>
+<script>const slides=document.querySelectorAll('.slide');let cur=0;
+const dotsEl=document.getElementById('dots');
+slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i);dotsEl.appendChild(d);});
+function goTo(n){slides[cur].classList.remove('active');dotsEl.children[cur].classList.remove('active');cur=Math.max(0,Math.min(n,slides.length-1));slides[cur].classList.add('active');dotsEl.children[cur].classList.add('active');document.getElementById('ctr').textContent=`${cur+1} / ${slides.length}`;document.getElementById('stitle').textContent=slides[cur].dataset.title||'';document.getElementById('prevBtn').disabled=cur===0;document.getElementById('nextBtn').disabled=cur===slides.length-1;}
+function nav(d){goTo(cur+d);}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')nav(1);if(e.key==='ArrowLeft')nav(-1);});</script>
+</body>
+</html>

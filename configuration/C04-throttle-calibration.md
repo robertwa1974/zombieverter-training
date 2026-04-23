@@ -1,0 +1,201 @@
+# C04 — Throttle Calibration
+
+**Track:** Firmware & Configuration  
+**Prerequisites:** W02 — Throttle & Brake Wiring, C02 — Web Interface Walkthrough  
+**Audience:** All levels  
+**Video source:** "ZombieVerter VCU Throttle Calibration" (May 2024, Good Enuff Garage)  
+**Estimated reading time:** 15 minutes
+
+---
+
+## Throttle Pedal Types
+
+Before calibrating, understand what kind of throttle pedal you have.
+
+### Hall Effect vs. Potentiometer
+Modern drive-by-wire throttle pedals from roughly 2005 onwards use **Hall effect sensors** — magnetic, no physical contact between moving parts. Older pedals used **potentiometers** (physical wiper contact). The ZombieVerter parameter names still use "pot" as a historical holdover, but the calibration procedure is identical regardless of sensor type. Hall effect pedals are generally more reliable and longer-lasting.
+
+### Single vs. Dual Channel
+All Hall effect pedals contain **two independent sensors** (two channels) for redundancy. The ZombieVerter supports both:
+- **Dual channel (recommended):** Both sensors are wired and monitored. If one channel fails or reads an implausible value, the VCU can detect the discrepancy and cut torque safely.
+- **Single channel:** Only one sensor wired. No redundancy — if the single channel fails high, the result is unintended full throttle. Use dual channel if at all possible.
+
+### Mounting Styles
+Throttle pedals from donor vehicles come in different mounting configurations:
+- **Floor-mounted / pedestal mount** — Common in European cars (BMW, Mercedes). The pedal mounts to the floor on a bracket.
+- **Firewall-mounted** — Common in American and Japanese cars. Mounts directly to the firewall, hanging position.
+- **Bracket-mounted** — Some pedals (like certain Chevy/GMC units) use a separate bracket that can be cut, heated, and welded for custom fitment. Useful for classic car conversions.
+
+### Popular Donor Pedals
+| Pedal | Notes |
+|---|---|
+| BMW E46 (floor mount) | All plastic, comes with separate bracket — buy the bracket too |
+| Honda Fit | Metal construction — can be cut and welded. Popular choice. |
+| Toyota Prius (Gen 3) | Hall effect, commonly available, pinout on openinverter wiki |
+| Chevy Avalanche / Envoy | Metal body, firewall mount |
+| Generic junkyard | Use Pick-n-Pull type yards; 50% off sales around holidays |
+
+> **Tip:** Find a pedal with a known pinout diagram *before* buying. The openinverter wiki has pinout diagrams for BMW and Prius pedals. For others, search "[year] [model] throttle pedal pinout" or check alldata.com (subscription).
+
+---
+
+## Wiring Six Wires to Four Pins
+
+Every dual-channel Hall effect throttle pedal has **six wires** — three per channel:
+- Ground (×2)
+- 5V supply (×2)  
+- Signal/wiper (×2)
+
+These six wires connect to **four VCU pins** by combining the shared grounds and shared 5V supplies:
+
+```
+Pedal wire          →    VCU pin
+Channel 1 ground  ──┐
+Channel 2 ground  ──┴── Pin 45 (throttle ground)
+
+Channel 1 5V      ──┐
+Channel 2 5V      ──┴── Pin 48 (throttle 5V supply)
+
+Channel 1 signal  ──── Pin 47 (throttle channel 1)
+Channel 2 signal  ──── Pin 46 (throttle channel 2)
+```
+
+> **Important:** The throttle grounds and 5V supply connect to the VCU pins, not to vehicle chassis ground or the 12V battery. The VCU manages power to the throttle internally. Connecting throttle ground to chassis can cause instability.
+
+### BMW Pedal Color Guide (Version 1 — brown/yellow/white with green stripe variants)
+| Wire | Function |
+|---|---|
+| Brown | Channel 1 ground |
+| Brown/green stripe | Channel 2 ground |
+| Yellow | Channel 1 5V (or signal — verify with pinout) |
+| Yellow/green stripe | Channel 2 5V (or signal) |
+| White | Channel 1 signal |
+| White/green stripe | Channel 2 signal |
+
+Always verify with the official pinout on the openinverter wiki before crimping.
+
+---
+
+## Calibration Procedure
+
+### Step 1: Verify Wiring
+
+With the VCU powered and connected to the web interface:
+1. Navigate to **Spot Values**
+2. Find `pot` and `pot2`
+3. Move the throttle pedal slowly from rest to full travel
+4. Both `pot` and `pot2` should **change** as you move the pedal
+
+If `pot` or `pot2` does not change, the relevant channel is not wired correctly. Check your wiring before proceeding.
+
+### Step 2: Read the Resting Values
+
+With the pedal **completely released** (foot off):
+1. Read `pot` — note this value (e.g. 435)
+2. Read `pot2` — note this value (e.g. 221)
+
+### Step 3: Read the Full-Travel Values
+
+Press and **hold** the pedal at full travel:
+1. Click Refresh in spot values
+2. Read `pot` at full travel (e.g. 2410)
+3. Read `pot2` at full travel (e.g. 1211)
+
+### Step 4: Set potmin and potmax
+
+Navigate to **Parameters → Throttle**.
+
+The ZombieVerter sets potmin/potmax **inside** the mechanical travel range (opposite to most inverters):
+
+| Parameter | Calculation | Example |
+|---|---|---|
+| `potmin` | Resting value **+ 10** | 435 + 10 = **445** |
+| `potmax` | Full-travel value **− 10** | 2410 − 10 = **2400** |
+| `pot2min` | Channel 2 resting **+ 10** | 221 + 10 = **231** |
+| `pot2max` | Channel 2 full-travel **− 10** | 1211 − 10 = **1201** |
+
+> **Why ±10?** This creates a small buffer inside the mechanical limits. The resulting `potnom` range (0–100) still covers 100% of usable throttle — you lose only a tiny fraction of ADC range in exchange for stability at the extremes.
+
+Press **Enter** after each value, then **Save Parameters to Flash**.
+
+### Step 5: Set potmode
+
+| Your wiring | Set `potmode` to |
+|---|---|
+| Both channels wired | `dual` |
+| One channel only | `single` |
+
+### Step 6: Verify potnom
+
+Go back to Spot Values. Watch `potnom`:
+- At rest: should read **0** (or close to 0)
+- At full travel: should read **100** (or close to 100)
+- Movement should be smooth and proportional
+
+If `potnom` reads a small non-zero value at rest, your `potmin` is set slightly too low — increase it by 5–10 counts.
+
+### Step 7: Set throtmin and throtmax
+
+**This is the most commonly missed step.**
+
+| Parameter | Description | Typical value |
+|---|---|---|
+| `throtmin` | Minimum allowed potnom (can be negative for lift-off regen) | 0 (or small negative for regen) |
+| `throtmax` | Maximum allowed potnom in forward | **100** |
+
+> **`throtmax` defaults to 0.** A VCU with `throtmax = 0` will never produce forward torque regardless of throttle position. If your throttle appears to do nothing, check this parameter first.
+
+---
+
+## Additional Throttle Parameters
+
+| Parameter | Description |
+|---|---|
+| `throtramp` | Rate of potnom increase per 10ms interval. Limits how fast torque rises when pedal is pressed quickly. Higher = more responsive, lower = smoother. |
+| `throtramprpm` | Motor RPM above which `throtramp` no longer applies. Above this speed, full throttle response is allowed. |
+| `revlim` | Motor RPM hard rev limiter. |
+| `throttledead` | Percentage of pedal travel that is deadband before torque begins. |
+
+---
+
+## Using the Spot Values Visibility Filter
+
+The web interface spot values list is long. For throttle calibration, you only need to watch a few values. Use the **Visible** column to hide everything except:
+- `pot`
+- `pot2`  
+- `potnom`
+
+Check the Visible box for those three, set the rest to non-visible, then use Auto Refresh. This keeps the display clean during calibration.
+
+---
+
+## Dual-Channel Plausibility
+
+With `potmode = dual`, the VCU continuously compares `pot` and `pot2`. If the two channels disagree by more than a configured threshold, the VCU will flag a throttle fault and cut torque.
+
+This means **both channels must be calibrated correctly.** A common mistake is calibrating only channel 1 and leaving `pot2min`/`pot2max` at defaults — this will cause immediate plausibility faults when `potmode` is switched to dual.
+
+---
+
+## Troubleshooting Throttle Issues
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `pot` or `pot2` doesn't change with pedal | Wrong pin, broken wire, or open circuit | Re-check wiring to pins 47, 46 |
+| `potnom` stuck at non-zero at rest | `potmin` set too low | Increase `potmin` by 5–10 |
+| `potnom` never reaches 100 | `potmax` set too high | Decrease `potmax` by 5–10 |
+| No torque despite valid `potnom` | `throtmax` = 0 | Set `throtmax` to 100 |
+| Throttle fault in dual mode | `pot2min`/`pot2max` not calibrated | Calibrate both channels |
+| Erratic `potnom` | Poor ground between pedal and Pin 45 | Check ground connection |
+
+---
+
+## What's Next
+
+- **A01** — Regen Tuning: configuring `throtmin` negative values for lift-off regen
+- **C03** — Essential Parameters: First Start (if not already completed)
+
+---
+
+*Source: "ZombieVerter VCU Throttle Calibration" — Good Enuff Garage (May 2024) | openinverter.org/wiki/ZombieVerter_VCU*  
+*Last verified against firmware: V2.30A (August 2025)*
