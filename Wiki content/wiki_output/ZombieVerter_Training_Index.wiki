@@ -1,0 +1,97 @@
+== ZombieVerter VCU Training Series ==
+
+A structured training series for the ZombieVerter open-source EV conversion Vehicle Control Unit.
+Source: https://github.com/robertwa1974/zombieverter-training · Firmware: V2.30A (August 2025)
+
+=== Track F — Foundation ===
+
+{| class="wikitable" style="width:100%"
+! Module !! Title !! Wiki Page
+|-
+| <code>F01</code> || What Is a VCU and Why Do You Need One || [[ZombieVerter_Training_F01]]
+|-
+| <code>F02</code> || ZombieVerter Ecosystem Overview || [[ZombieVerter_Training_F02]]
+|-
+| <code>F03</code> || EV Drivetrain Fundamentals || [[ZombieVerter_Training_F03]]
+|-
+| <code>F04</code> || High Voltage Safety || [[ZombieVerter_Training_F04]]
+|}
+
+=== Track H — Hardware ===
+
+{| class="wikitable" style="width:100%"
+! Module !! Title !! Wiki Page
+|-
+| <code>H01</code> || VCU Hardware Walkthrough || [[ZombieVerter_Training_H01]]
+|}
+
+=== Track W — Wiring ===
+
+{| class="wikitable" style="width:100%"
+! Module !! Title !! Wiki Page
+|-
+| <code>W01</code> || Wiring Philosophy & Best Practices || [[ZombieVerter_Training_W01]]
+|-
+| <code>W02</code> || Throttle & Brake Wiring || [[ZombieVerter_Training_W02]]
+|-
+| <code>W03</code> || Contactor & Precharge Circuit || [[ZombieVerter_Training_W03]]
+|-
+| <code>W04</code> || HVIL — High Voltage Interlock Loop || [[ZombieVerter_Training_W04]]
+|-
+| <code>W05</code> || Cooling System Control || [[ZombieVerter_Training_W05]]
+|-
+| <code>W06</code> || 12V Auxiliary & Ignition Wiring || [[ZombieVerter_Training_W06]]
+|}
+
+=== Track C — Configuration ===
+
+{| class="wikitable" style="width:100%"
+! Module !! Title !! Wiki Page
+|-
+| <code>C00</code> || Firmware Version History || [[ZombieVerter_Training_C00]]
+|-
+| <code>C01</code> || Flashing Firmware || [[ZombieVerter_Training_C01]]
+|-
+| <code>C02</code> || Web Interface Walkthrough || [[ZombieVerter_Training_C02]]
+|-
+| <code>C03</code> || Essential Parameters: First Start || [[ZombieVerter_Training_C03]]
+|-
+| <code>C04</code> || Throttle Calibration || [[ZombieVerter_Training_C04]]
+|-
+| <code>C06</code> || Fault Codes & Status Flags || [[ZombieVerter_Training_C06]]
+|}
+
+=== Track I — Integration ===
+
+{| class="wikitable" style="width:100%"
+! Module !! Title !! Wiki Page
+|-
+| <code>I01</code> || Nissan Leaf Inverter || [[ZombieVerter_Training_I01]]
+|-
+| <code>I02</code> || Tesla Drive Units (SDU & LDU) || [[ZombieVerter_Training_I02]]
+|-
+| <code>I03</code> || GS450h Transaxle || [[ZombieVerter_Training_I03]]
+|-
+| <code>I03-X</code> || GS450h — Wiring & Oil Pump Deep Dive || [[ZombieVerter_Training_I03-X]]
+|-
+| <code>I04</code> || Mitsubishi Outlander Drive Unit || [[ZombieVerter_Training_I04]]
+|}
+
+=== Track A — Advanced ===
+
+{| class="wikitable" style="width:100%"
+! Module !! Title !! Wiki Page
+|-
+| <code>A01</code> || Regen Tuning || [[ZombieVerter_Training_A01]]
+|-
+| <code>A02</code> || Charge Control & Popular Chargers || [[ZombieVerter_Training_A02]]
+|-
+| <code>A03</code> || BMS Integration || [[ZombieVerter_Training_A03]]
+|-
+| <code>A04</code> || Gear Selectors & Shifters || [[ZombieVerter_Training_A04]]
+|-
+| <code>A05</code> || CAN Gateway & Multi-Node Systems || [[ZombieVerter_Training_A05]]
+|-
+| <code>A06</code> || Firmware Customisation & Contributing || [[ZombieVerter_Training_A06]]
+|}
+

@@ -1,0 +1,244 @@
+{{ZombieVerter Training Module
+|code=C06
+|title=Fault Codes & Status Flags
+|source=https://github.com/robertwa1974/zombieverter-training
+|firmware=V2.30A
+}}
+
+----
+
+== Overview ==
+
+When the ZombieVerter doesn't behave as expected, the web interface gives you two key feedback mechanisms:
+* '''<code>opmode</code>''' — the current operating state of the VCU
+* '''<code>status</code> / <code>lastError</code>''' — what the VCU last tried to do and why it stopped
+
+Understanding these is the difference between spending five minutes diagnosing a problem and spending five hours replacing things that weren't broken.
+
+----
+
+== Operating Modes (<code>opmode</code>) ==
+
+<code>opmode</code> is visible in Spot Values and shows the current state of the VCU state machine.
+
+{| class="wikitable"
+|-
+! opmode value !! Meaning
+|-
+| <code>off</code> || VCU is powered but ignition is not on, or system is in standby
+|-
+| <code>precharge</code> || Start signal received — negative and precharge contactors closed, waiting for UDC to rise
+|-
+| <code>pch</code> / <code>PCH</code> || Same as precharge (abbreviated display)
+|-
+| <code>run</code> || Precharge complete, main contactor closed, system ready for torque commands
+|-
+| <code>charge</code> || System is in charge mode (HV contactors closed for charging)
+|}
+
+``<code>
+off → precharge → run
+</code>`<code>
+
+If the system goes </code>off → precharge → off<code> or </code>off → precharge → pch fail<code>, something prevented precharge from completing.
+
+----
+
+== The </code>lastError<code> and </code>status<code> Fields ==
+
+These two spot values tell you what the VCU was trying to do and why it stopped. They are often more useful than </code>opmode<code> alone.
+
+{{Tip|'''Note on naming:''' The field called </code>lastError<code> is not always actually an error — it often records the last significant status change. Think of it as "last known status" rather than "last fault." Similarly, </code>status<code> reports the current blocking condition.}}
+
+=== Common </code>status<code> Messages ===
+
+{| class="wikitable"
+|-
+! status message !! Meaning !! Common cause
+|-
+| </code>UDC below udcsw<code> || Pack voltage hasn't reached the precharge completion threshold || </code>udcsw<code> set too high, shunt not communicating, wrong </code>shuntType<code>
+|-
+| </code>Throttle 1 2<code> || Throttle channel fault || </code>pot2min<code>/</code>pot2max<code> not calibrated, potmode mismatch, wiring issue
+|-
+| </code>din_break on<code> || Brake signal is active || Brake wired normally-closed instead of normally-open, floating input
+|}
+
+----
+
+== The Most Common Failure: </code>udcsw<code> ==
+
+This is the single most frequently missed parameter for first-time users.
+
+
+
+
+{| class="wikitable"
+|-
+! Situation !! Set </code>udcsw<code> to
+|-
+| Bench testing, no HV connected || 0–5V (just to prove the sequencing works)
+|-
+| Bench testing with low-voltage HV source || Just below your source voltage
+|-
+| Real vehicle, known pack voltage || ~95% of nominal pack voltage
+|}
+
+{{Tip|'''Why does it default to 330V?''' Setting it too low is dangerous — the main contactor could close before the inverter capacitors are adequately charged, potentially damaging or destroying the inverter. The 330V default is conservative and safe for common Nissan Leaf/Prius systems. It is intentionally set to require you to make a conscious decision about your pack voltage.}}
+
+
+# Go to Spot Values, enable Auto Refresh
+# Turn ignition ON → press START
+# Watch </code>opmode<code> — does it go to </code>precharge<code>? Good. Does it then fail?
+# Check </code>status<code> — if it says </code>UDC below udcsw<code>, this is your issue
+# Go to Parameters → Contactor Control → </code>udcsw<code>
+# Set to 0 for bench testing (no HV) or appropriate value for your pack
+# Save Parameters to Flash
+# Try again
+
+----
+
+== Precharge Failure Diagnosis Tree ==
+
+</code>`<code>
+System won't reach RUN mode
+            │
+            ▼
+Does opmode reach "precharge"?
+     │              │
+    NO             YES
+     │              │
+     ▼              ▼
+Check:        Does it then fail?
+* Ignition         │
+  signal on   ─── YES
+  Pin 15           │
+* Start signal     ▼
+  on Pin 52   Check status field:
+                   │
+          ┌────────┼────────┐
+          │        │        │
+    "UDC below  "din_break  Other
+    udcsw"      on"
+          │        │        │
+          ▼        ▼        ▼
+    Check       Brake    Check shunt,
+    udcsw       signal   CAN wiring,
+    setting     wiring   udcmin
+</code>`<code>
+
+----
+
+== Throttle Status Errors ==
+
+After precharge succeeds and </code>opmode<code> reaches </code>run<code>, the next common status message involves the throttle:
+
+=== </code>Throttle 1 2<code> (or similar) ===
+
+This means the VCU has a problem with one or both throttle channels. Common causes:
+
+# '''</code>potmode<code> set to </code>dual<code> but only one channel wired''' — Channel 2 reads a fixed value that disagrees with channel 1's movement
+# '''</code>pot2min<code>/</code>pot2max<code> not calibrated''' — Channel 2 plausibility check fails immediately
+# '''Wiring fault''' — One channel is open or shorted
+
+# Go to Spot Values
+# Watch </code>pot<code> and </code>pot2<code> while moving the pedal
+# Both should change. If one stays fixed, that channel has a wiring problem.
+# If both change but the system still faults, check that </code>pot2min<code>/</code>pot2max<code> are calibrated (not at defaults)
+
+----
+
+== </code>din_break<code> — The Brake Signal Interlock ==
+
+</code>din_break<code> is a critical safety interlock. '''The VCU will not produce torque while </code>din_break<code> shows "on"''', regardless of throttle position or operating mode.
+
+This causes significant confusion because the system appears to be in run mode, the throttle appears to work (potnom changes), but the motor does nothing.
+
+* </code>din_break<code> = '''off''' → normal, torque is allowed
+* </code>din_break<code> = '''on''' → brake is active, torque is blocked
+
+=== Causes of </code>din_break<code> being stuck "on" ===
+
+{| class="wikitable"
+|-
+! Cause !! Fix
+|-
+| Brake wired to constant 12V || Check brake switch wiring — should be normally open
+|-
+| Brake switch wired normally-closed (NC) || Use the normally-open (NO) terminal
+|-
+| Pin 49 floating with electrical noise || Add 10kΩ pull-down resistor from Pin 49 to ground
+|-
+| Brake pedal held down during testing || Release the brake
+|}
+
+----
+
+== Parameter Abbreviations Reference ==
+
+The ZombieVerter interface uses abbreviated parameter names that can be confusing. Common ones:
+
+{| class="wikitable"
+|-
+! Abbreviation !! Full meaning
+|-
+| </code>udc<code> || Battery/pack voltage (U = voltage in German/Latin, DC = direct current)
+|-
+| </code>udcsw<code> || UDC switch — voltage at which precharge is considered complete
+|-
+| </code>udcmin<code> || UDC minimum — below this voltage, VCU will not enter run mode
+|-
+| </code>udclim<code> || UDC limit — maximum pack voltage before derating
+|-
+| </code>invudc<code> || Inverter-reported DC bus voltage
+|-
+| </code>opmode<code> || Operating mode
+|-
+| </code>invstat<code> || Inverter status
+|-
+| </code>pot<code> || Throttle channel 1 raw ADC value (pot = potentiometer, legacy name)
+|-
+| </code>pot2<code> || Throttle channel 2 raw ADC value
+|-
+| </code>potnom<code> || Normalised throttle demand (0–100)
+|-
+| </code>din_break<code> || Digital input — brake signal
+|-
+| </code>din_forward<code> || Digital input — forward direction signal
+|-
+| </code>din_reverse<code> || Digital input — reverse direction signal
+|-
+| </code>din_start<code> || Digital input — start signal
+|-
+| </code>temphs<code> || Temperature — heat sink (inside inverter)
+|-
+| </code>tempm<code> || Temperature — motor
+|-
+| </code>idc<code> || DC current from shunt
+|-
+| </code>pch<code> || Precharge (abbreviated in status messages)
+|}
+
+----
+
+== Reading the Interface Efficiently ==
+
+=== Use Ctrl+F ===
+The web interface is a single long page. Use browser find (Ctrl+F) to locate specific parameters or spot values quickly. Search for </code>udcsw<code> to jump directly to that parameter.
+
+=== Use Auto Refresh Strategically ===
+Auto Refresh updates all spot values continuously. For diagnosis, turn it on and watch specific values while performing actions (turning ignition on, pressing start, moving throttle). For calibration, it's easier to turn it off and use the manual Refresh button so values don't jump while you're trying to read them.
+
+=== Use the Visible Filter ===
+Check the Visible box for only the spot values you're currently watching, hide the rest. This dramatically reduces clutter, especially useful when diagnosing precharge issues (watch just </code>opmode<code>, </code>status<code>, </code>udc<code>) or throttle issues (watch just </code>pot<code>, </code>pot2<code>, </code>potnom<code>, </code>din_break`).
+
+----
+
+== What's Next ==
+
+* '''C07''' — Data Logging & Live Telemetry
+* '''W03''' — Contactor & Precharge Circuit (for deeper precharge theory)
+
+----
+
+''Source: "ZombieVerter VCU Won't RUN" — Good Enuff Garage (May 2024) | openinverter.org/wiki/ZombieVerter_VCU''  
+''Last verified against firmware: V2.30A (August 2025)''

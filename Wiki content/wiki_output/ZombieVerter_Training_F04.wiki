@@ -1,0 +1,129 @@
+{{ZombieVerter Training Module
+|code=F04
+|title=High Voltage Safety
+|source=https://github.com/robertwa1974/zombieverter-training
+|firmware=V2.30A
+}}
+
+----
+
+{{Tip|'''This module is not optional.''' High voltage EV systems can kill instantly, silently, and without warning. Read this before touching any orange cable, any contactor, or any HV terminal.}}
+
+----
+
+== The Risk ==
+
+A typical EV conversion pack runs at 200–450V DC. At these voltages, as little as 100mA of current through the body is sufficient to cause fatal ventricular fibrillation. The current available from a traction pack is measured in hundreds of amps — far beyond what causes death.
+
+The danger is compounded because:
+* '''DC does not let go.''' AC at 50/60 Hz causes muscle contractions that may allow you to pull away. DC causes sustained muscle contraction — if you grip a live conductor your hand locks closed.
+* '''The capacitors retain charge.''' After contactors open, the inverter bus capacitors remain charged at near-pack voltage for minutes. The pack is isolated but the inverter is still dangerous.
+* '''Contactors can fail closed.''' A welded contactor leaves the HV system live even when the VCU believes it is off.
+
+----
+
+== The Two-Person Rule ==
+
+'''Never work on a live HV system alone.'''
+
+If something goes wrong — a shock, a fall, a fault — you need someone present who can kill the power and call for help. This is not a guideline. It is the single most important safety practice in this entire module.
+
+----
+
+== Personal Protective Equipment ==
+
+
+* '''Insulated gloves rated for the voltage''' — Class 0 (1000V rated) or higher. Not rubber washing-up gloves, not latex medical gloves. Proper electrical insulating gloves from a safety supplier. Inspect before every use — a pinhole is invisible and fatal.
+* '''Safety glasses''' — arc flash and battery acid protection.
+* '''No jewellery''' — rings, watches, and chains are conductors. Remove them entirely before working near any electrical system, HV or LV.
+
+* Face shield
+* Non-conductive tools
+* Insulated floor mat
+
+----
+
+== The Discharge Procedure ==
+
+Before working on any HV component — inverter, charger, battery, contactor box — verify the system is de-energised:
+
+# '''Key off, key removed from vehicle'''
+# '''Disconnect the 12V auxiliary battery''' — this removes power from the VCU and prevents contactor actuation
+# '''Open the HV service disconnect''' — every EV pack should have a manual service disconnect (MSD) that physically breaks the HV circuit. Pull it, pocket it.
+# '''Wait minimum 5 minutes''' — allows inverter capacitors to discharge through bleed resistors. Some inverters take longer. Check your inverter specification.
+# '''Verify with a multimeter''' — set to DC voltage, highest range. Measure across HV+ and HV− at the inverter DC bus terminals. Should read near zero. If it reads anything above 50V, wait longer and measure again.
+# '''Only then touch any HV component'''
+
+{{Warning|'''Never trust the contactors alone.''' Contactors can fail closed (welded). The 12V interlock can fail. The VCU can malfunction. The only safe assumption is that the HV system is live until you have personally measured otherwise with a calibrated meter.}}
+
+----
+
+== Fusing Philosophy ==
+
+Every HV conductor must be protected by a fuse rated for the maximum fault current. For a ZombieVerter-based build:
+
+
+
+
+
+----
+
+== HVIL — High Voltage Interlock Loop ==
+
+HVIL is a low-current 12V loop that passes through every HV connector, service plug, and access panel in the system. If any connector is opened or any panel is removed, the loop opens, the VCU detects the break and immediately opens the contactors.
+
+This means:
+* Unplugging an HV cable without discharging first triggers a contactor open, not electrocution
+* Removing a battery lid triggers a contactor open
+* A failed HV connector triggers a contactor open
+
+HVIL does not replace the discharge procedure — contactors are mechanical devices and can fail. But it dramatically reduces the probability of accidental energisation during service.
+
+The BMW Safety Box (S-BOX) integrates HVIL with pack-level CAN monitoring in one unit. See Module W04 for HVIL wiring.
+
+----
+
+== Cable Colour Conventions ==
+
+{| class="wikitable"
+|-
+! Colour !! Meaning
+|-
+| Orange || HV cables — always treat as potentially live
+|-
+| Red || 12V positive
+|-
+| Black || 12V negative / chassis ground
+|-
+| Blue || Neutral (some charger AC wiring)
+|-
+| Brown || Line (some charger AC wiring)
+|}
+
+{{Tip|When working on an unfamiliar vehicle, treat all orange cables as live regardless of the system state you believe it to be in.}}
+
+----
+
+== Bench Testing Safety ==
+
+Most first-start testing is done on 12V only — no HV battery connected. This is intentionally the safest way to verify wiring and parameters before introducing HV risk.
+
+When you do connect HV for the first time:
+* Use a current-limited bench supply set to a low voltage (60V, 2A) before using full pack voltage
+* Start with a bench precharge verification — watch <code>udc</code> rise in Spot Values before attempting run mode
+* Have the 12V auxiliary battery disconnect within reach before and during the first HV test
+* Verify contactor sequencing on 12V before connecting any HV cables
+
+----
+
+== If Someone Is Shocked ==
+
+# '''Do not touch them''' — if they are still in contact with a live conductor, you will be shocked too
+# '''Kill the power''' — pull the service disconnect, disconnect the 12V battery, use a non-conductive object to break the contact if you cannot reach the disconnect
+# '''Call emergency services immediately''' — even if the person appears conscious and uninjured, cardiac arrest can occur up to 24 hours after an electrical injury
+# '''CPR if necessary''' — electrical shock can cause cardiac arrest without obvious external injury
+
+----
+
+''Sources: openinverter.org community practice · BMW Safety Box series — Good Enuff Garage (April–May 2024) · general electrical safety standards''  
+''Last verified: August 2025''
