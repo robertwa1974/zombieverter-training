@@ -1,0 +1,202 @@
+# A05 — CAN Gateway & Multi-Node Systems
+
+**Track:** Advanced  
+**Prerequisites:** H01 — VCU Hardware Walkthrough, C02 — Web Interface Walkthrough  
+**Audience:** Intermediate  
+**Estimated reading time:** 15 minutes
+
+---
+
+## Overview
+
+The ZombieVerter has three independent CAN buses. Understanding how to assign devices, terminate correctly, and integrate OEM instrument clusters is what separates a functional conversion from a polished one.
+
+---
+
+## CAN Bus Physical Wiring
+
+### Termination — The Most Skipped Step
+
+A CAN bus must have exactly **two 120Ω termination resistors** — one at each physical end of the bus. Without correct termination you get signal reflections, corrupted frames, and intermittent communication failures that are very hard to diagnose.
+
+> **🔴 Exactly two 120Ω resistors — one at each end of each bus.**
+
+One resistor at the VCU end (often built into the VCU board). One at the furthest device on that bus. Between CAN H and CAN L.
+
+**Verifying termination:** With power off, measure resistance across CAN H and CAN L. With two 120Ω resistors in parallel you should read approximately 60Ω. More than 60Ω = too few resistors. Less than 60Ω = too many.
+
+> **⚠ Check device datasheets.** Some inverters and OBCs have built-in 120Ω termination. Adding an external resistor to a device that already has one results in too many terminators and bus instability.
+
+### Topology — Bus Not Star
+
+CAN is a bus topology. All devices connect to the same two wires (CAN H and CAN L) running from one end to the other. Avoid star topologies and long stub branches.
+
+```
+Correct — bus topology:
+[120Ω] ─── VCU ─── ISA Shunt ─── Inverter ─── [120Ω]
+
+Wrong — star topology:
+              VCU
+              ├── ISA Shunt    ← signal reflections at each stub
+              ├── Inverter
+              └── BMS
+```
+
+Use twisted pair for all CAN runs. Shielded twisted pair for runs near HV cables or in noisy environments.
+
+### Baud Rates by Device
+
+| Device | Baud rate |
+|---|---|
+| Nissan Leaf inverter | 500 kbps |
+| Mitsubishi Outlander | 500 kbps |
+| ISA IVT shunt | 1000 kbps (1 Mbps) |
+| SimpBMS / Orion BMS | 500 kbps |
+| BMW i3 LIM | 500 kbps |
+| CHAdeMO socket | 500 kbps (fault-tolerant CAN3) |
+| OBD2 / ELM327 | 500 kbps |
+
+All devices on the same CAN bus must run at the same baud rate. The ISA shunt at 1 Mbps typically needs its own bus separate from 500 kbps devices.
+
+---
+
+## Assigning Devices to CAN Buses
+
+### The Three Buses
+
+| Bus | Notes |
+|---|---|
+| CAN1 | High-speed CAN. Primary bus for most inverters. |
+| CAN2 | High-speed CAN. Secondary bus — BMS, shunt, second devices. |
+| CAN3 | Configurable via PCB jumpers — high-speed, fault-tolerant, or single-wire. Used for CHAdeMO. |
+
+### Assignment Parameters
+
+| Parameter | What it assigns |
+|---|---|
+| `inverterCan` | Which bus the traction inverter is on |
+| `shuntCan` | Which bus the ISA shunt is on |
+| `bmsCan` | Which bus the cell BMS is on |
+| `chargerCan` | Which bus the OBC is on |
+
+### Typical Configuration
+
+```
+CAN1 @ 500 kbps:
+  Traction inverter   (inverterCan = CAN1)
+  Leaf PDM            (same bus as inverter)
+  BMW i3 LIM          (CCS — same bus)
+
+CAN2 @ 1000 kbps:
+  ISA shunt           (shuntCan = CAN2)
+  SimpBMS / Orion     (bmsCan = CAN2, if 500k: separate bus from shunt)
+
+CAN3 @ 500 kbps fault-tolerant:
+  CHAdeMO socket      (6 PCB jumpers required)
+```
+
+> **⚠ CAN1/CAN2 label swap:** There is a known documentation issue where CAN1 and CAN2 are labelled in reverse in some older wiring diagrams. If a device won't communicate despite correct wiring, try swapping the bus assignment parameter value before rewiring.
+
+---
+
+## Vehicle CAN Integration
+
+### The vehicle Parameter
+
+Set `vehicle` to tell the VCU which OEM CAN profile to use. The VCU then sends spoofed CAN messages to keep the instrument cluster functional.
+
+| vehicle setting | Covers | What it drives |
+|---|---|---|
+| BMW E46 | 1998–2005 3-series | Speedo, tacho, temp, fuel level, CEL suppression |
+| BMW E6x+ | E60/E90/E9x/E91 | Speedo, tacho, lock state, warning lights |
+| BMW E39 | 1996–2003 5-series | Speedo, tacho, instrument functions |
+| BMW E31 | 8-series | Added V2.04A |
+| VAG | Mid-2000s VW/Audi | Instrument cluster CAN |
+| Subaru | Various | CAN integration |
+| Classic | Any vehicle | No vehicle CAN — uses analog outputs only |
+| None | — | No vehicle CAN output |
+
+### BMW E9x — Added V2.20A
+
+The E90/E91/E92/E93 CAN integration added in V2.20A includes:
+- Lock state over CAN
+- Warning lights control (suppresses CEL and ICE-specific warnings)
+- Vehicle speed driven from motor RPM
+
+### If Your Vehicle Isn't Listed
+
+Use Classic mode and drive gauges with analog PWM outputs. You can also submit a CAN log from your OEM vehicle as a GitHub feature request — see Module A06.
+
+---
+
+## Classic Mode & Analog Gauges
+
+Set `vehicle` = Classic for any vehicle without CAN-based instruments — pre-2000 vehicles, classic cars, trucks, kit cars.
+
+### Tachometer — TachoPPR Parameter (V2.20A+)
+
+The VCU outputs a pulse signal from a PWM output pin that can drive an OEM analog tachometer. `TachoPPR` sets pulses per revolution:
+
+| TachoPPR | Equivalent cylinder count |
+|---|---|
+| 1 | 1-cylinder |
+| 2 | 4-cylinder (typical default) |
+| 3 | 6-cylinder |
+| 4 | 8-cylinder |
+
+Tune until the needle reads actual motor RPM. Assign the tacho output function in the Dout section.
+
+### Speedometer
+
+A speedo pulse output is also available via the GS450h pump pin in V2.20A+ when set to Classic mode. Configure PPR to match your OEM speedo sender expectation.
+
+### Fuel Gauge — Digipot Method
+
+For vehicles without CAN fuel gauge control, a digital potentiometer (digipot) IC wired between the VCU and the OEM fuel gauge sender wire can drive the fuel needle to show state of charge.
+
+The VCU controls the digipot resistance in steps. Calibrate by setting step values and observing needle position:
+- 0 steps = low fuel warning triggered
+- Tune mid-scale and full-scale steps to match actual SoC at those points
+
+The temperature gauge can also be driven from `temphs` (inverter heatsink temperature) or `tempm` (motor temperature) in some vehicle classes.
+
+---
+
+## OBD2 & Live Telemetry
+
+### OBD2 via CAN (V2.04A+)
+
+The VCU can respond to OBD2 requests over CAN, allowing standard Bluetooth OBD dongles and apps like Torque Pro to read live VCU data — motor speed, pack voltage, current, SoC, temperatures.
+
+> **⚠ Dongle quality matters.** Cheap AliExpress ELM327 clones have inconsistent results. Higher-quality Bluetooth or WiFi OBD adapters work reliably. If Torque Pro connects but shows no data, try a different dongle before assuming a configuration problem.
+
+### Web Interface Graphing
+
+The VCU web interface includes built-in real-time graphing. Select spot values to plot, set the update interval. Useful for:
+- Throttle linearity during calibration (plot `potnom` vs `pot`)
+- Precharge voltage rise (plot `udc` over time)
+- Temperature monitoring under load (`temphs`, `tempm`)
+- Regen tuning (`idc` going negative during deceleration)
+
+### Parameter Files on GitHub
+
+Damien publishes parameter files for his fleet vehicles (E39, E46, E31, L200 truck) on the ZombieVerter GitHub repo. These are real working configurations for tested vehicles — a useful starting point for matching drivetrain/vehicle combinations before tuning your own build.
+
+---
+
+## Diagnosing CAN Communication Failures
+
+Work through in order:
+
+1. Is the correct bus assignment parameter set?
+2. Is the baud rate consistent across all devices on that bus?
+3. Is termination correct? Measure ~60Ω across H/L with power off.
+4. Try swapping `inverterCan` or `shuntCan` value (CAN1/CAN2 label swap issue).
+5. Are CAN H and CAN L wires the right way around? Try swapping them.
+6. Is the cable twisted pair? Long untwisted runs in noisy environments cause intermittent failures.
+
+---
+
+*Source: Damien Maguire @Evbmw · openinverter.org/wiki · V2.04A changelog · V2.20A changelog*  
+*TachoPPR added V2.20A · E90 CAN added V2.20A · OBD2 added V2.04A · E31 added V2.04A*  
+*Last verified against firmware: V2.30A (August 2025)*

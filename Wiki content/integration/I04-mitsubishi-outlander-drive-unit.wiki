@@ -1,0 +1,124 @@
+= I04 — Mitsubishi Outlander PHEV Drive Unit =
+
+'''Track:''' Integration  
+'''Prerequisites:''' C03 — Essential Parameters: First Start, W03 — Contactor & Precharge  
+'''Audience:''' Intermediate  
+'''Estimated reading time:''' 12 minutes
+
+----
+
+== Overview ==
+
+The Mitsubishi Outlander PHEV contains separate front and rear drive units — each with its own motor, inverter, and three-phase connection. Either or both can be used in a conversion. The interface is CAN-based, similar to the Nissan Leaf but with Mitsubishi-specific message IDs.
+
+'''Front drive unit VCU parameter:''' <code>inverter</code> = (check current wiki — Outlander front)  
+'''Rear drive unit VCU parameter:''' <code>inverter</code> = 8 (RearOutlander)
+
+: '''Note on versions:''' Early firmware used <code>inverter</code> = 6 for Outlander, which has since been deprecated. Use <code>inverter</code> = 8 for the rear unit. Check the current wiki for the front unit value as this has changed across firmware versions.
+
+----
+
+== Front vs Rear Drive Unit ==
+
+The Outlander PHEV has distinct front and rear units:
+
+{| class="wikitable"
+|-
+! Motor type || ! PMAC || ! PMAC
+|-
+| Peak power || | ~60kW || | ~60kW
+|-
+| Orientation || | Transverse FWD || | Longitudinal RWD
+|-
+| Interface || | CAN || | CAN
+|-
+| ZV support || | Partial — check wiki || | Full — V2.15A+
+|-
+| Common use || | Front-wheel drive conversions || | Rear-wheel drive conversions, longitudinal builds
+|}
+
+The rear unit is the more commonly used in ZombieVerter conversions and has more complete firmware support.
+
+----
+
+== Minimum Voltage ==
+
+: '''The Outlander inverter requires a minimum of approximately 200V to operate.''' Below this threshold the inverter will not produce torque. This is hardcoded in the inverter and cannot be changed from the VCU.
+
+For bench testing: use a bench power supply at a low voltage to verify CAN communication. The inverter will communicate below 200V — it just won't spin. You need pack voltage to verify full operation.
+
+----
+
+== Wiring ==
+
+The Outlander inverter needs:
+
+{| class="wikitable"
+|-
+! Signal || ! Notes
+|-
+| 12V+ permanent || | To inverter logic power
+|-
+| Ground || | Chassis ground
+|-
+| CAN H / CAN L || | 500 kbps, VCU CAN1 or CAN2
+|-
+| HV+ / HV− || | Via contactors and precharge as normal
+|-
+| Motor three-phase || | Three-phase AC to motor (integral in most units)
+|-
+| Resolver || | Motor position sensor — OEM harness or equivalent
+|}
+
+The motor and inverter are typically inseparable in the Outlander unit — the motor is integrated into the transaxle housing and the inverter bolts directly on. You take them together from the donor vehicle.
+
+----
+
+== The Outlander OBC — Two 12V Feeds ==
+
+The Outlander OBC (onboard charger) is a separate unit that provides both AC charging and DC-DC conversion. It is covered in Module A02.
+
+The most common Outlander build failure: wiring only one of the two 12V power inputs to the OBC. Both must be connected. See A02 for full OBC wiring.
+
+----
+
+== OEM Harness ==
+
+For the Outlander drive unit, obtain as much of the OEM harness as possible. The resolver connector and cooling system connectors have non-standard pinouts that are significantly easier to work with if you have the original plugs.
+
+Mitsubishi forum resources (as distinct from openinverter) can be valuable for Outlander-specific pinout information — Damien noted he sourced the initial CAN log data that enabled Outlander support from a Mitsubishi enthusiast forum.
+
+----
+
+== Cooling ==
+
+The Outlander drive unit requires active liquid cooling. The OEM system uses a dedicated inverter coolant circuit separate from the engine coolant. In a conversion:
+
+* Electric coolant pump required (12V, controllable)
+* Assign <code>CoolantPump</code> to a VCU digital output pin
+* The pump should run whenever the inverter is active — assign to activate in precharge and run mode
+
+The Outlander water heater (cabin heating) is also supported by the ZombieVerter and communicates via CAN. Separate VCU parameter assignment required.
+
+----
+
+== CAN Communication Verification ==
+
+With 12V applied and CAN connected:
+* Check <code>invstat</code> in Spot Values — should show non-zero when inverter is communicating
+* Check <code>temphs</code> — should show a plausible temperature
+* If no communication: verify <code>inverter</code> parameter is set correctly, check CAN bus assignment, verify 500 kbps baud rate, check twisted pair CAN wiring with 120Ω termination at both ends
+
+----
+
+== Known Issues ==
+
+'''Outlander front unit CAN parameter value changed between firmware versions.''' Always verify against the current openinverter wiki before setting this for the front unit — the deprecated value 6 (used before V2.17A) will not work correctly on current firmware.
+
+'''Rear unit bug fixed in V2.17A (May 2024).''' If using the rear unit, firmware must be V2.17A or later. Earlier firmware had a bug that prevented correct rear unit operation.
+
+----
+
+''Source: Damien Maguire @Evbmw — "Mitsubishi Outlander Front Drive Unit" (May 2021) · openinverter.org forum''  
+''Rear Outlander support: V2.15A · Rear unit bug fix: V2.17A · Old inverter=6 deprecated''  
+''Last verified against firmware: V2.30A (August 2025)''

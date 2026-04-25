@@ -1,0 +1,140 @@
+= I01 — Nissan Leaf Inverter =
+
+'''Track:''' Integration  
+'''Prerequisites:''' C03 — Essential Parameters: First Start, W03 — Contactor & Precharge  
+'''Audience:''' All levels — Leaf is the most common ZV drivetrain  
+'''Estimated reading time:''' 15 minutes
+
+----
+
+== Overview ==
+
+The Nissan Leaf inverter is the most common drivetrain in ZombieVerter-based conversions. It uses a CAN-based interface — straightforward wiring, well-documented, and supported across all three Leaf generations. The Leaf motor (EM57 or EM61) is a permanent magnet AC machine with excellent power density and broad speed range.
+
+'''VCU parameter:''' <code>inverter</code> = 1
+
+----
+
+== Leaf Generations ==
+
+{| class="wikitable"
+|-
+! Generation || ! Pack || ! Motor || ! Inverter type || ! Notes
+|-
+| Gen1 (ZE0) || | 24kWh || | EM57 (80kW) || | Single inverter || | 2011–2017. Most common in conversions.
+|-
+| Gen2 (AZE0) || | 30/40kWh || | EM57 (80–110kW) || | Single inverter || | 2016–2022. Minor CAN differences.
+|-
+| Gen3 (ZE1) || | 40/62kWh || | EM57/EM90 || | Revised inverter || | 2018+. Improved in V2.22A.
+|}
+
+For conversion use, Gen1 and Gen2 are nearly identical from the VCU's perspective. Gen3 has some CAN differences that were addressed in V2.22A firmware.
+
+----
+
+== Vehicle Connections ==
+
+The Leaf inverter needs very few external connections:
+
+{| class="wikitable"
+|-
+! Signal || ! Connection
+|-
+| Permanent 12V || | 12V+ to inverter (two gray wires — join together, add fuse)
+|-
+| Ground || | Chassis ground to inverter (two gray wires — join together)
+|-
+| Ignition ON || | 12V when key is in ON position (orange wire from OEM harness)
+|-
+| CAN H || | CAN bus high to VCU CAN1H
+|-
+| CAN L || | CAN bus low to VCU CAN1L
+|}
+
+That's five connections. The Leaf inverter is genuinely simple to wire.
+
+: '''Using the OEM harness:''' If you have the Leaf wire harness, extract the inverter signal plug branch. If not, you can connect directly to the inverter connector pins — Damien's 2019 "Grey Goose" video documents exactly which pins carry which signals, including colour codes.
+
+----
+
+== Resolver Wiring ==
+
+The Leaf motor position is sensed by a resolver mounted in the motor. The resolver connects from the motor to the inverter via a separate harness plug (typically 8-pin).
+
+The resolver carries: sine pair, cosine pair, exciter pair, and motor temperature sensor. All must be connected correctly or the inverter will report a resolver fault and refuse to run.
+
+'''If you have the motor harness:''' Plug it in as-is. The connector is keyed and can only go in one way.
+
+'''If you don't have the harness:''' You need to identify the pins from the resolver winding resistance (sine/cosine = ~50Ω, exciter = ~100Ω) and wire accordingly. This is documented in the openinverter wiki and in Damien's 2019 Leaf inverter video.
+
+----
+
+== VCU Parameters ==
+
+<syntaxhighlight lang="text">
+inverter   = 1           (Leaf)
+inverterCan = CAN1       (or CAN2 — try both if no communication)
+</syntaxhighlight>
+
+The Leaf PDM (charger/DC-DC) can be added on the same CAN bus:
+<syntaxhighlight lang="text">
+chargerType = LeafPDM
+chargerCan  = CAN1
+</syntaxhighlight>
+
+----
+
+== Connectivity Check ==
+
+With the Leaf inverter powered (12V applied, CAN connected, <code>inverter</code> = 1):
+* Check <code>invstat</code> in Spot Values — should show a non-zero value when the inverter is communicating
+* Check <code>temphs</code> — should show a plausible heatsink temperature (25–40°C at room temperature)
+* If both read zero: check CAN assignment, check baud rate (should be 500 kbps), try swapping CAN1/CAN2 assignment
+
+----
+
+== Minimum Pack Voltage ==
+
+The Leaf inverter requires a minimum pack voltage to operate. Below approximately 200V the inverter will not run. This is hardcoded in the inverter firmware and cannot be changed from the VCU.
+
+For bench testing at low voltage: use <code>udcsw</code> = 0 and set <code>udcmin</code> low to allow the VCU to attempt precharge. The inverter itself will refuse to produce torque below 200V — you will see the contactors sequence correctly but <code>invstat</code> will indicate the inverter is not ready.
+
+----
+
+== The Leaf PDM — Charger and DC-DC ==
+
+The Leaf Power Delivery Module (PDM) combines the AC charger and DC-DC converter. It uses the same CAN bus as the inverter and communicates using the same 500 kbps baud rate.
+
+See Module A02 for full Leaf PDM charging setup.
+
+----
+
+== Gen3 Specific Notes ==
+
+The Gen3 ZE1 Leaf (2018+) has some differences in CAN message content that caused issues with early V2.x firmware. V2.22A (March 2025) addressed the Gen3 PDM specifically. If using Gen3 hardware, ensure firmware is V2.22A or later.
+
+----
+
+== Known Issues and Gotchas ==
+
+'''"Inverter not communicating" despite correct wiring:''' Try swapping <code>inverterCan</code> between CAN1 and CAN2. There is a known documentation issue where these labels are reversed in some older wiring diagrams.
+
+'''Resolver error on first run:''' Usually caused by incorrect resolver wiring. The motor must not be spinning when the VCU first initialises the resolver. Power up with the motor stationary.
+
+'''Inverter runs but no torque:''' Check <code>throtmax</code> — defaults to 0. Also check <code>din_brake</code> is showing "off" and a direction (din_forward or din_reverse) is selected.
+
+'''Motor makes noise but doesn't produce useful torque:''' Check that the HV voltage is above 200V. The inverter needs minimum voltage to produce full torque output.
+
+----
+
+== Common Build Context ==
+
+The Leaf inverter/motor combination is physically an FWD transverse unit — compact and suited to front-wheel drive conversions. For RWD applications it requires a custom adapter to convert from the integrated FWD drive axle output to a propeller shaft or transfer case.
+
+The motor + inverter typically weigh around 60kg combined. The motor alone is approximately 35kg.
+
+----
+
+''Source: Damien Maguire @Evbmw — "The Grey Goose — Leaf Inverter Wiring" (July 2019) · "Nissan Leaf Motor Running" (2018)''  
+''openinverter.org wiki — Nissan Leaf inverter page''  
+''Last verified against firmware: V2.30A (August 2025)''

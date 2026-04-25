@@ -1,0 +1,97 @@
+# F01 — What Is a VCU and Why Do You Need One
+
+**Track:** Foundation  
+**Prerequisites:** None — start here  
+**Audience:** Complete beginners  
+**Estimated reading time:** 8 minutes
+
+---
+
+## The Problem With Donor EV Components
+
+When you salvage an inverter and motor from a wrecked Nissan Leaf, you have powerful, proven hardware — but that hardware was designed to talk to a Leaf BMS, a Leaf dashboard, a Leaf brake controller, and a Leaf battery management system. None of which you have.
+
+Every donor EV component speaks its own proprietary CAN protocol. The inverter expects specific CAN messages on specific message IDs at specific baud rates. It won't spin without them. Building a custom controller to reverse-engineer and replicate those messages for every possible inverter type would take months per build.
+
+A Vehicle Control Unit solves this problem. It's a purpose-built translator that sits between your donor drivetrain components and your conversion vehicle, speaking the language each component needs.
+
+---
+
+## What a VCU Does
+
+In a ZombieVerter-based conversion, the VCU is responsible for:
+
+**Contactor sequencing** — closing the negative contactor, running precharge through a resistor, monitoring HV bus voltage, then closing the main contactor in the correct sequence. This protects the inverter capacitors from inrush current damage on every startup.
+
+**Torque control** — reading the throttle pedal, mapping it to a 0–100% demand, and sending the appropriate CAN torque command to the inverter. Without this, the inverter has no way to know how much torque the driver is requesting.
+
+**Direction control** — handling forward/reverse selection and communicating motor direction to the inverter.
+
+**Regen control** — managing regenerative braking via throttle lift and brake pedal, sending negative torque commands to the inverter (V2.15A onwards).
+
+**Charge control** — managing the onboard charger and DC-DC converter via CAN when plugged in.
+
+**BMS integration** — reading current limits from a cell BMS and enforcing them as caps on motor torque and charge current.
+
+**Vehicle integration** — sending spoofed CAN messages to keep the OEM instrument cluster functional (speedometer, tacho, warning lights).
+
+**Safety** — opening contactors immediately on fault conditions, HVIL loop monitoring, brake interlock enforcement.
+
+---
+
+## What a VCU Is Not
+
+A VCU is not a motor controller or inverter. It does not switch the high-voltage phases to the motor. The inverter does that. The VCU tells the inverter what torque to produce — the inverter does the actual power switching.
+
+A VCU is not a BMS. It does not monitor individual cell voltages or temperatures, balance cells, or protect against cell-level faults. That is the job of a separate BMS (SimpBMS, Orion, etc.). The VCU reads the output of the BMS — current limits — and enforces them.
+
+---
+
+## What Makes ZombieVerter Different
+
+Before the ZombieVerter, DIY EV converters had two options: write custom Arduino/microcontroller code to replicate inverter CAN messages (high skill barrier, per-inverter effort), or use the openinverter framework on a custom PCB (powerful but complex to set up).
+
+The ZombieVerter packages the openinverter framework in a purpose-built VCU board with:
+
+- **No programming required** — all configuration through a browser-based web interface over Wi-Fi
+- **Multi-inverter support** — select your inverter type from a dropdown; the VCU handles the rest
+- **Multi-charger support** — Leaf PDM, VW OBC, Tesla Gen2/3, Outlander OBC, CHAdeMO, CCS
+- **IO Matrix** — configurable input/output pin functions without code changes
+- **Active community** — openinverter.org forum with hundreds of documented builds
+
+---
+
+## The Hardware
+
+The ZombieVerter board is built around two processors:
+
+**STM32F107** — the main MCU. Runs the VCU firmware, manages all I/O, handles CAN communication with all connected devices, runs the contactor sequencing logic, calculates torque demands.
+
+**ESP8266** — the Wi-Fi module. Hosts the web configuration interface. Broadcasts a Wi-Fi access point you connect to from any browser. Does not run VCU functions — it's purely the configuration layer.
+
+The board connects to your vehicle through a 56-pin Aptiv automotive connector. All vehicle wiring — power, signals, CAN buses, contactor outputs — goes through this one connector.
+
+> Available from evbmw.com as a complete pre-programmed kit, partial kit, or PCB-only.
+
+---
+
+## The Community
+
+The ZombieVerter is designed and maintained by Damien Maguire (EVBMW) and built on Johannes Huebner's openinverter firmware framework. It is genuinely open source — schematics, firmware, and board files are on GitHub.
+
+The community is at openinverter.org/forum. Hundreds of completed builds are documented there, covering BMW E-series, Volkswagen, Mitsubishi, classic vehicles, and many others.
+
+Damien's YouTube channel (@Evbmw) documents everything he builds and every firmware release with walkthrough videos — an invaluable resource that directly informed this training series.
+
+---
+
+## Next Steps
+
+- **F02** — ZombieVerter Ecosystem Overview: supported hardware, community resources
+- **H01** — VCU Hardware Walkthrough: the board in detail
+- **C03** — Essential Parameters: First Start: get to run mode on your bench
+
+---
+
+*Source: Damien Maguire @Evbmw — "New VCU Project Introduction" (February 2021)*  
+*Last verified against firmware: V2.30A (August 2025)*

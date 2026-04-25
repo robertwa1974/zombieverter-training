@@ -1,0 +1,292 @@
+= H01 — VCU Hardware Walkthrough =
+
+'''Track:''' Hardware  
+'''Prerequisites:''' F02 — ZombieVerter Ecosystem Overview  
+'''Audience:''' All levels  
+'''Estimated reading time:''' 12 minutes
+
+----
+
+== Board Overview ==
+
+The ZombieVerter VCU is a compact single-board controller built around two main chips:
+
+* '''STM32F107''' — the main microcontroller, running the VCU firmware
+* '''ESP8266''' — a plug-in Wi-Fi module that hosts the web interface
+
+: '''GD32F107 Warning:''' A small number of boards produced during the 2021–2022 semiconductor shortage used a GigaDevices GD32F107 chip instead of the STM32. These "GD boards" require a separate firmware branch that has since been abandoned and diverged significantly from the main codebase. If you have an older board, check your chip markings before flashing. See Module C01 for details.
+
+The current production hardware revision is '''V1.a'''. An earlier V1 (pre-production) revision exists — the main wiki image labels it V1.2 to distinguish it. V1.a is the board you will receive from the webshop today.
+
+----
+
+== Physical Layout ==
+
+The board is housed in an IP-rated enclosure with a 56-pin Aptiv connector on one end. Key physical features:
+
+=== The 56-Pin Main Connector ===
+This is the single point of connection for all vehicle wiring. All power, ground, signal inputs, and outputs pass through this connector. It uses Aptiv (formerly Delphi) automotive-grade terminals.
+
+'''Connector part numbers:'''
+{| class="wikitable"
+|-
+! Part || ! Aptiv Part Number
+|-
+| Cable-side connector housing || | Aptiv 56-pin connector
+|-
+| Board-side header || | Aptiv 56-pin header
+|-
+| Terminal removal tool || | 210S048 (Aptiv/Delphi)
+|}
+
+'''Alternative sources (AliExpress):'''
+* Full enclosure kit with header, connector, and pins
+* Connector and pins only
+* Pre-wired connector harness (most convenient for initial bench testing)
+
+=== The Wi-Fi Module ===
+The ESP8266 plugs into a socket on the main board. It can be removed — this is sometimes recommended when doing an ST-Link firmware recovery, to avoid any interference during the flash process.
+
+'''SSID:''' <code>inverter</code> or <code>zom_vcu</code> (varies by firmware version)  
+'''Password:''' <code>inverter123</code>  
+'''Default IP:''' <code>192.168.4.1</code>
+
+: '''Known issue with newer boards:''' Some recent units have a new Wi-Fi module variant that does not automatically assign an IP address via DHCP. If you connect to the Wi-Fi but cannot reach 192.168.4.1, manually set your computer's IP address to <code>192.168.4.2</code> (or any address in the 192.168.4.x range other than .4.1). See the forum thread linked in the wiki for ongoing status.
+
+=== Status LEDs ===
+The board has several indicator LEDs:
+
+{| class="wikitable"
+|-
+! LED || ! Label || ! Meaning
+|-
+| Activity || | `acty` || | Should be flashing when the board has 12V power. A steady (non-flashing) light or no light indicates a problem.
+|-
+| ESP8266 LEDs || | on Wi-Fi module || | Indicate Wi-Fi module status
+|}
+
+If <code>acty</code> is not flashing after applying 12V power, the board is not running correctly. Common causes: insufficient power supply, bad ground connection, or a firmware issue requiring recovery.
+
+=== SWD Test Points (C, G, D) ===
+Three test points on the PCB are used for ST-Link firmware recovery:
+* '''C''' — SWClk (clock)
+* '''G''' — Ground
+* '''D''' — SWDio (data)
+
+These are only needed if the board is bricked and cannot be recovered via the web interface. See Module C01.
+
+----
+
+== Power Requirements ==
+
+The ZombieVerter requires a '''permanent 12V supply''' — not ignition-switched. This is intentional: the VCU needs to remain powered when the vehicle is parked to manage charge timers, monitor systems, and handle charging sessions.
+
+{| class="wikitable"
+|-
+! Parameter || ! Value
+|-
+| Supply voltage || | 12V DC
+|-
+| Idle current draw || | ~150 mA
+|-
+| Power pin || | Pin 56 (12V+)
+|-
+| Ground pin || | Pin 55 (12V−)
+|}
+
+150 mA at idle is modest — comparable to a small relay module. With a healthy 12V battery, this will not cause meaningful parasitic drain over days of parking.
+
+: '''Do not use an ignition-switched supply for the main VCU power.''' If you do, the VCU will lose its UDC (pack voltage) history when the key is off, which can cause precharge failures on the next startup. See Module W03.
+
+----
+
+== Complete Pin Reference ==
+
+The following table covers all 56 pins on the main connector. Fixed-function pins are listed first, followed by the configurable I/O section.
+
+=== Fixed Power & Signal Pins ===
+
+{| class="wikitable"
+|-
+! Pin || ! Function || ! Direction || ! Notes
+|-
+| 55 || | 12V Ground || | PWR || | Permanent ground
+|-
+| 56 || | 12V Positive || | PWR || | Permanent 12V — NOT ignition switched
+|-
+| 32 || | Ignition relay control || | Output (low-side) || | Pulls ground pin of 12V relay to ground — relay switches 12V "ignition" to inverter/charger/DCDC
+|-
+| 15 || | Ignition ON input || | Input || | Pull HIGH (to 12V+) with ignition switch in ON position
+|-
+| 52 || | Start input || | Input || | Pull HIGH momentarily with ignition switch in START position
+|-
+| 53 || | Reverse input || | Input || | Pull HIGH (to 12V+) when reverse selected
+|-
+| 54 || | Forward input || | Input || | Pull HIGH (to 12V+) when forward selected
+|-
+| 49 || | Brake input || | Input || | Pull HIGH (to 12V+) when brake pedal pressed
+|-
+| 45 || | Throttle ground || | PWR || | Ground reference for throttle pot(s)
+|-
+| 46 || | Throttle channel 2 || | Analog input || | Second pot wiper (dual-channel throttle)
+|-
+| 47 || | Throttle channel 1 || | Analog input || | First pot wiper
+|-
+| 48 || | Throttle 5V supply || | PWR || | 5V supply for throttle pot(s)
+|-
+| 31 || | Negative contactor || | Output (low-side) || | Pulls negative contactor coil ground
+|-
+| 33 || | Positive contactor || | Output (low-side) || | Pulls positive contactor coil ground
+|-
+| 34 || | Precharge contactor || | Output (low-side) || | Pulls precharge contactor coil ground
+|}
+
+: '''Contactor wiring rule:''' All contactor output pins are '''low-side switching''' — they pull the ground leg of the contactor coil to ground. The positive leg of each contactor coil must be connected to 12V+. Do NOT connect 12V+ to these output pins.
+
+=== Configurable I/O Pins ===
+
+These pins can be assigned to different functions through the web interface. However, the hardware type of each pin is fixed — software cannot change a low-side output into a high-side output, for example.
+
+==== Low-Side Outputs ====
+These pull to ground when activated. Use them to switch relay coils (coolant pumps, fans, etc.). '''Not suitable for directly driving loads.'''
+
+{| class="wikitable"
+|-
+! Pin assignment name || ! Default use
+|-
+| GP Out 3 || | General purpose
+|-
+| GP Out 2 || | General purpose
+|-
+| Neg Contactor switch / GP Out 1 || | Negative contactor (or general purpose)
+|-
+| Trans SL1− || | GS450h transmission solenoid 1 (if not using GS450h, available as GP)
+|-
+| Trans SL2− || | GS450h transmission solenoid 2 (if not using GS450h, available as GP)
+|}
+
+==== High-Side PWM Outputs ====
+These supply 12V+ when activated, with optional PWM modulation. Use for gauges, PWM-controlled fans, or indicator signals. '''Not suitable for controlling relay coils''' — use low-side outputs for relays.
+
+{| class="wikitable"
+|-
+! Pin assignment name || ! Default use
+|-
+| PWM 1 || | General purpose PWM
+|-
+| PWM 2 || | General purpose PWM
+|-
+| PWM 3 || | General purpose PWM
+|-
+| Pump PWM || | GS450h oil pump PWM, or tachometer PWM output
+|}
+
+==== Ground-Pull Digital Inputs ====
+These pins detect when pulled to ground. '''Do not apply any voltage to these pins''' — they are ground-detect only, not 12V-tolerant inputs.
+
+{| class="wikitable"
+|-
+! Pin assignment name
+|-
+| PB1
+|-
+| PB2
+|-
+| PB3
+|}
+
+----
+
+== Configurable Pin Functions (Software-Assigned) ==
+
+The following functions can be assigned to the configurable I/O pins via the web interface. Note the type constraint — a function expecting a low-side output cannot be assigned to a PWM pin.
+
+{| class="wikitable"
+|-
+! Function Name || ! Type || ! Description
+|-
+| ChaDemoAIw || | OUTPUT || | Activates when CHAdeMO charger handshake initiates
+|-
+| OBCEnable || | OUTPUT || | Activates as part of the ExtCharger module
+|-
+| HeaterEnable || | OUTPUT || | Activates in run mode when coolant pump is on
+|-
+| RunIndication || | OUTPUT || | Activates when VCU is in run mode
+|-
+| WarnIndication || | OUTPUT || | Activates when an error occurs
+|-
+| CoolantPump || | OUTPUT || | Activates during precharge and run
+|-
+| NegContactor || | OUTPUT || | Activates when negative contactor should close
+|-
+| BrakeLight || | OUTPUT || | Activates when brake light threshold met
+|-
+| ReverseLight || | OUTPUT || | Activates when reverse is selected
+|-
+| CoolingFan || | OUTPUT || | Activates when FanTemp setpoint is reached
+|-
+| HVActive || | OUTPUT || | Activates when contactors are closed in run or charge mode
+|-
+| BrakeVacPump || | DIGITAL OUTPUT || | Activates when BrakeVacSensor threshold is met
+|-
+| CpSpoof || | PWM OUTPUT || | Spoofs CP signal to OBC (used with FOCCCI or i3 LIM)
+|-
+| GS450Hpump || | PWM OUTPUT || | Controls GS450h oil pump speed
+|-
+| HeatReq || | DIGITAL INPUT || | Heater request signal
+|-
+| HVRequest || | DIGITAL INPUT || | **Currently non-functioning**
+|-
+| DCFCRequest || | DIGITAL INPUT || | CHAdeMO charge interface enable
+|-
+| ProxPilot || | ANALOGUE INPUT || | Detects J1772 charge cable insertion
+|-
+| BrakeVacSensor || | ANALOGUE INPUT || | Vacuum sensor for brake booster pump control
+|-
+| Switch_NoRegen || | DIGITAL INPUT || | Inhibits regen (useful with manual transmission) — check firmware release notes for availability
+|}
+
+: '''Critical warning:''' The web interface will allow you to assign a function to a pin type it is not compatible with (e.g. assigning an output function to an input pin). The software will accept the assignment but the hardware will not respond. Always check that your assignment matches the physical pin type. A common mistake is wiring an input switch but assigning it to a function that requires an output.
+
+----
+
+== The Proximity Pilot (ProxPilot) Circuit ==
+
+The ProxPilot analogue input is used to detect when a J1772 charge cable is plugged in, which triggers the VCU to enter charge mode. This is required for chargers like the Mitsubishi Outlander OBC that don't have their own cable detection logic. (The Nissan Leaf PDM handles this internally, so ProxPilot is not needed for Leaf stacks.)
+
+The detection circuit requires two external resistors:
+
+<syntaxhighlight lang="text">
+        5V (Pin 48)
+            │
+          330Ω  ← R_pullup
+            │
+            ├────────────── ProxPilot analogue input pin
+            │
+          R5 ← value depends on connector type:
+            │   Type 1 (J1772): 2.7kΩ
+            │   Type 2 (Mennekes): 4.7kΩ
+            │
+           GND
+</syntaxhighlight>
+
+: Note: The charge port itself may already contain this resistor — check before adding an external one.
+
+'''Configuration steps:'''
+# Assign ProxPilot function to the chosen analogue input pin in the web UI
+# Monitor the <code>PPVal</code> spot value while plugging in a cable
+# Set <code>PPthreshold</code> to a value just above the reading seen when the cable is inserted
+# Be aware that the exact resistance (and therefore <code>PPVal</code>) will vary depending on the cable's rated current capacity
+
+----
+
+== What's Next ==
+
+* '''H02''' — Inputs & Outputs Deep Dive: electrical characteristics, voltage limits, current ratings
+* '''H03''' — CAN Bus on the VCU: which CAN bus is which, termination, and baud rates
+* '''W01''' — Wiring Philosophy & Best Practices: before you touch a wire
+
+----
+
+''Source: openinverter.org/wiki/ZombieVerter_VCU | openinverter.org/wiki/ZombieVerter_IO''  
+''Last verified against firmware: V2.30A (August 2025)''

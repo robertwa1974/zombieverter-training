@@ -1,0 +1,138 @@
+= A03 — BMS Integration =
+
+'''Track:''' Advanced  
+'''Prerequisites:''' W03 — Contactor & Precharge Circuit, C03 — Essential Parameters: First Start  
+'''Audience:''' All levels  
+'''Estimated reading time:''' 12 minutes
+
+----
+
+== Overview ==
+
+The ZombieVerter does '''not''' implement cell-level BMS functions. It reads pack-level data from a separate BMS via CAN and enforces current limits from that BMS. This is an intentional division of labour:
+
+* '''ISA shunt''' — pack-level monitoring (voltage, current, SoC). Feeds precharge logic and contactor control.
+* '''Cell BMS (SimpBMS, Orion, etc.)''' — cell-level monitoring, balancing, per-cell protection. Sends charge/discharge limits to VCU over CAN.
+* '''VCU''' — enforces BMS limits, manages contactors, controls inverter and charger.
+
+----
+
+== ISA IVT Shunt ==
+
+The ISA IVT-S shunt is the recommended pack-level monitor for all ZombieVerter builds. It provides continuous measurement of voltage, current, power, and state of charge over CAN.
+
+=== What It Measures ===
+
+{| class="wikitable"
+|-
+! Measurement || ! Spot value
+|-
+| Pack voltage (U1) || | `udc`
+|-
+| DC current || | `idc`
+|-
+| State of charge || | `soc`
+|-
+| Power (W) || | `power`
+|-
+| Coulomb count (Ah) || | `curin`
+|}
+
+=== Permanent 12V — The Critical Rule ===
+
+: '''🔴 The ISA shunt must have always-on 12V — the same permanent feed as the VCU itself.'''
+
+If powered from an ignition-switched supply, the shunt loses its SoC state and UDC reading when the key is off. On the next startup, UDC reads zero → precharge fails every time.
+
+'''Rule:''' ISA shunt power = always on. Same feed as VCU. Never ignition-switched.
+
+=== U1 Placement — Inverter Side of Main Contactor ===
+
+The ISA shunt's U1 voltage sense wire must connect to the HV bus on the '''inverter side''' of the main contactor — not the battery side.
+
+During precharge, U1 rises from 0V toward pack voltage as the inverter capacitors charge through the precharge resistor. When U1 crosses <code>udcsw</code>, the VCU closes the main contactor.
+
+If U1 is connected to the battery side, it reads full pack voltage immediately, and the VCU tries to close the main contactor before the capacitors are charged — potentially welding the contacts on first use.
+
+=== Initialisation (One-Time) ===
+
+<syntaxhighlight lang="text">
+shuntType = ISA
+shuntCan  = CAN1   (match your wiring)
+
+→ ISAMode = Init → save to flash → power cycle VCU and shunt simultaneously
+→ ISAMode = Normal → save to flash → reboot VCU
+</syntaxhighlight>
+
+If initialisation fails, power the shunt 2–3 seconds before the VCU. This allows the shunt to fully boot before the VCU attempts to communicate.
+
+=== BMW S-BOX Alternative ===
+
+Set <code>shuntType</code> = SBOX. The BMW Safety Box provides pack voltage monitoring and HVIL (High Voltage Interlock Loop) in one unit. Popular in BMW-based builds. Configure in Comms parameters.
+
+----
+
+== Cell-Level BMS Options ==
+
+{| class="wikitable"
+|-
+! BMS || ! Notes
+|-
+| **SimpBMS** || | Most popular. Open-source. Designed for EV conversions. Connects to Leaf cell modules via UART (120-pin Leaf BMS connector), sends charge/discharge limits to VCU over CAN.
+|-
+| **Orion BMS** || | Commercial, professional-grade. Plug-and-play CAN integration with VCU. High cost but very reliable.
+|-
+| **Nissan Leaf ZE1 BMS** || | Salvaged from 62kWh Leaf. Native Leaf cell integration. Supported in V2.30A.
+|-
+| **Renault Kangoo BMS** || | 36-module BMS. Added V2.20A.
+|-
+| **BMW S-BOX** || | Combined pack monitor + HVIL. Set `shuntType` = SBOX.
+|-
+| **VW E-BOX** || | Volkswagen equivalent to S-BOX. Set `shuntType` = VAG.
+|}
+
+----
+
+== How BMS Limits Work ==
+
+The BMS sends maximum charge and discharge current limits to the VCU via CAN. The VCU derates inverter torque commands and charge current to stay within those limits.
+
+<syntaxhighlight lang="text">
+BMS sends via CAN → VCU enforces:
+  Max discharge current → caps motor torque demand
+  Max charge current    → caps regen / charge current
+  BMS fault / over-volt → VCU opens contactors
+</syntaxhighlight>
+
+=== BMS Parameters ===
+
+{| class="wikitable"
+|-
+! Parameter || ! What it does
+|-
+| `bmsCan` || | CAN bus the BMS is connected to
+|-
+| `bmsType` || | BMS protocol (SimpBMS, Orion, ZE1, etc.)
+|-
+| `maxDischargeCurrent` || | VCU hard limit (A) — overrides BMS if lower
+|-
+| `maxChargeCurrent` || | VCU hard limit for regen and charging
+|}
+
+: '''⚠ Set <code>bmsCan</code> correctly.''' If BMS shares a bus with the inverter, check for CAN ID conflicts. The ISA shunt and cell BMS can be on different CAN buses — the ISA shunt often runs at 1 Mbps while most BMS devices run at 500 kbps, so they typically need separate buses anyway.
+
+----
+
+== ISA vs Cell BMS — Both Needed ==
+
+The ISA shunt and a cell BMS are complementary, not interchangeable:
+
+* The '''ISA shunt''' provides UDC for precharge logic and idc for power monitoring. Without it (or <code>shuntType</code> = SBOX/VAG), precharge sequencing cannot work.
+* The '''cell BMS''' provides per-cell voltage monitoring, temperature, balancing, and current limits. Without it, you have no protection against individual cell over-voltage or thermal runaway.
+
+From V2.20A, it is possible to run with <code>shuntType</code> = None and use BMS data from the inverter and BMS directly for pack-level monitoring — demonstrated in Damien's Mitsubishi L200 truck build using a Leaf ZE1 battery pack with integrated BMS.
+
+----
+
+''Source: openinverter.org/wiki · Damien Maguire @Evbmw''  
+''Last verified against firmware: V2.30A (August 2025)''

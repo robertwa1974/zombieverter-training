@@ -1,0 +1,223 @@
+= W06 — 12V Auxiliary & Ignition Wiring =
+
+'''Track:''' Wiring  
+'''Prerequisites:''' H01 — VCU Hardware Walkthrough  
+'''Audience:''' All levels  
+'''Video sources:''' "EV Conversion DIY Wire Harness" series (Apr–May 2024, Good Enuff Garage); "ZombieVerter VCU Forward & Reverse" (Apr 2024)  
+'''Estimated reading time:''' 12 minutes
+
+----
+
+== Overview ==
+
+The ZombieVerter's 12V wiring is divided into three logical groups:
+# '''Permanent power''' — always on, powers the VCU itself
+# '''Ignition ON''' — switched when the key is turned to "on" position
+# '''Start''' — momentary signal when the key is turned to "start" position
+
+Understanding why these are separate — and keeping them separate — is important for correct contactor sequencing and reliable operation.
+
+----
+
+== Permanent Power ==
+
+The VCU must remain powered at all times, even when the vehicle is "off." This is required for:
+* Charge timers
+* Charging session management
+* Monitoring systems during parking
+* ISA shunt continuous UDC reporting
+
+{| class="wikitable"
+|-
+! VCU Pin || ! Function
+|-
+| Pin 56 || | 12V+ permanent positive
+|-
+| Pin 55 || | 12V− ground
+|}
+
+'''Fusing:''' Fuse the positive lead. A 1–3A fuse is appropriate for the VCU alone at ~150mA idle current. If you are powering other devices from the same feed, size accordingly.
+
+'''Power supply options for bench testing:'''
+* Bench power supply (recommended — set to 13V, limit to 1–2A)
+* Car battery (add a fuse)
+* 9V battery (works for basic power-up verification only — not for any functional testing)
+
+: '''Do not use an ignition-switched supply for permanent power.''' The VCU and ISA shunt must stay on when the key is off. See Module W03 for why this matters for precharge.
+
+----
+
+== Fuse Block Strategy ==
+
+For a clean installation, use separate fuse blocks for:
+
+{| class="wikitable"
+|-
+! Fuse block || ! Powers || ! Notes
+|-
+| **Permanent power block** || | VCU (Pin 56), ISA shunt, any always-on devices || | Direct from battery through main fuse
+|-
+| **Ignition ON block** || | Devices that should power on with key || | Fed from VCU-controlled relay (Pin 32 output)
+|-
+| **Start position block** || | Start signal only || | Momentary feed
+|}
+
+Using separate fuse blocks makes troubleshooting far easier — you can isolate each logical group.
+
+----
+
+== Ignition ON Signal ==
+
+When the driver turns the key to the "on" position (not start), Pin 15 must see 12V.
+
+{| class="wikitable"
+|-
+! VCU Pin || ! Function || ! Signal type
+|-
+| Pin 15 || | Ignition ON || | 12V switched — stays on while key is in ON position
+|}
+
+This is not a momentary signal. It stays high for the entire time the vehicle is in use.
+
+'''Simple bench test:''' Connect a toggle switch between 12V+ and Pin 15. Toggle = key to ON position.
+
+----
+
+== Start Signal ==
+
+When the driver turns the key to the "start" position (momentary crank position), Pin 52 must see a brief 12V pulse.
+
+{| class="wikitable"
+|-
+! VCU Pin || ! Function || ! Signal type
+|-
+| Pin 52 || | Start || | Momentary 12V — brief pulse, like turning a key to start
+|}
+
+The start signal triggers the precharge sequence. It does not need to stay high — a pulse of at least ~500ms is sufficient. The VCU latches into precharge mode once triggered.
+
+'''Simple bench test:''' Connect a momentary pushbutton between 12V+ and Pin 52. Press = key to start.
+
+'''Common mistake:''' Holding the start signal on too long or wiring it as a sustained signal rather than momentary. This can cause issues with re-triggering precharge after a fault. Wire it like an ignition start — momentary.
+
+----
+
+== The Inverter/Charger Enable Relay (Pin 32) ==
+
+The VCU controls an external relay through Pin 32 (low-side switching) to provide a managed "ignition" or "enable" signal to the inverter, charger, and DC-DC converter. These devices should not receive their enable signal until the VCU is ready for them.
+
+'''How it works:'''
+* Pin 32 is a low-side output — it pulls the relay coil ground to ground when activated
+* The relay switches 12V to the enable pins of the inverter, charger, and/or DC-DC
+* The VCU controls when this relay fires based on operating state
+
+'''Wiring:'''
+<syntaxhighlight lang="text">
+12V+ ─────────── [Relay coil +]
+                 [Relay coil −] ──── Pin 32 (VCU) ──── GND
+
+12V+ ─────────── [Relay switch COM]
+                 [Relay switch NO] ──── Inverter enable / ignition input
+                                   └── Charger enable input
+                                   └── DC-DC enable input
+</syntaxhighlight>
+
+: This relay is sometimes called the "inverter relay" or "ignition relay" in forum discussions. It's the same thing — a VCU-controlled switch that powers up the drivetrain components when the VCU is ready.
+
+----
+
+== Forward and Reverse Signals ==
+
+{| class="wikitable"
+|-
+! VCU Pin || ! Function || ! Signal type
+|-
+| Pin 54 || | Forward || | 12V when forward direction selected
+|-
+| Pin 53 || | Reverse || | 12V when reverse direction selected
+|}
+
+=== Direction Mode Options ===
+
+Configure via <code>dirmode</code> parameter (under Throttle in the web interface):
+
+{| class="wikitable"
+|-
+! dirmode setting || ! How it works
+|-
+| `defaultFwd` || | No wiring needed for forward. Default direction is forward when in run mode. Add a button on Pin 53 to select reverse.
+|-
+| `button` || | Use a momentary button. No pin active = default direction. Pin active = alternate direction.
+|-
+| `switch` || | Use a 3-position switch. Pin 54 high = forward, Pin 53 high = reverse, neither high = neutral.
+|-
+| `switchReversed` || | Same as switch but motor direction inverted. Use if drivetrain spins backwards.
+|-
+| `buttonReversed` || | Same as button but inverted.
+|}
+
+=== Behaviour in Each Mode ===
+
+'''defaultFwd:''' The simplest setup. As soon as the VCU enters run mode, direction is automatically Drive. Add a single wire from a momentary button to Pin 53 for reverse. When the button is released, direction returns to Drive.
+
+'''switch (recommended for most builds):''' Wire a 3-position switch:
+* Position 1 → 12V to Pin 54 → Forward/Drive
+* Position 2 → Centre (neither pin active) → Neutral
+* Position 3 → 12V to Pin 53 → Reverse
+
+The direction shown in spot values will track the switch position. Note: the switch wiring can be counterintuitive — the "Forward" label on the switch often corresponds to the opposite blade terminal. Check your specific switch's wiring diagram.
+
+'''What happens when you turn off ignition with switch in Forward:'''  
+Direction goes to Neutral when opmode goes to Off. When you next start the vehicle with the switch in Forward, it will immediately go to Drive — correct behaviour.
+
+=== Torque Direction ===
+
+Forward sends positive torque commands to the inverter. Reverse sends negative torque commands — the motor spins in the opposite direction. There is no physical reverse gear in most EV transaxles (Prius, Outlander, Leaf) — reverse is achieved by commanding negative torque.
+
+'''Exception:''' The Lexus GS450h transmission does have a reverse gear and uses a physical gear selector with linkage. This is handled differently — see Module I03.
+
+'''Swapping forward/reverse direction:''' If your motor spins the wrong way for a given direction signal (common when reorienting a drive unit from its OEM position), use <code>switchReversed</code> or <code>buttonReversed</code> in <code>dirmode</code> to invert the direction without rewiring.
+
+----
+
+== Brake Signal ==
+
+{| class="wikitable"
+|-
+! VCU Pin || ! Function || ! Signal type
+|-
+| Pin 49 || | Brake || | 12V when brake pedal pressed
+|}
+
+The brake signal is a safety interlock. <code>din_break</code> must read "off" (brake not pressed) for the VCU to allow torque output.
+
+Wire to the normally-open (NO) terminal of the brake light switch, so Pin 49 sees 12V only when the brake pedal is depressed.
+
+'''If Pin 49 is left unwired (floating):''' It may pick up electrical noise and read as "on" intermittently or constantly, blocking torque. Add a 10kΩ pull-down resistor from Pin 49 to ground if you have noise issues.
+
+----
+
+== The "Holy Trinity" — Minimum for Run Mode ==
+
+From bench testing experience, the minimum wires required to reach run mode are:
+
+# '''Pin 56''' — permanent 12V+
+# '''Pin 55''' — permanent ground
+# '''Pin 15''' — ignition ON (12V switched)
+# '''Pin 52''' — start (momentary 12V)
+# '''Pin 54 or 53''' — forward or reverse direction
+
+Plus correct parameters (especially <code>udcsw</code>, <code>shuntType</code>, and <code>throtmax</code>).
+
+----
+
+== What's Next ==
+
+* '''W07''' — CAN Bus Wiring
+* '''W03''' — Contactor & Precharge Circuit
+* '''C03''' — Essential Parameters: First Start
+
+----
+
+''Source: "EV Conversion DIY Wire Harness" series, "ZombieVerter VCU Forward & Reverse" — Good Enuff Garage (Apr–May 2024)''  
+''Last verified against firmware: V2.30A (August 2025)''
