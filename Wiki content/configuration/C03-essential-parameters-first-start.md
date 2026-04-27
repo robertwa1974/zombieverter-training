@@ -59,9 +59,23 @@ Save to flash.
 | VW/Audi system | VAG |
 | Nissan Leaf inverter | LEAF |
 
-If you are using an ISA shunt and haven't initialised it yet, do that now — see Module W03. The VCU cannot precharge without a valid UDC reading.
-
 Save to flash.
+
+### ISA Shunt Initialisation Procedure
+
+If you are using an ISA shunt it must be initialised before it will report UDC. The VCU cannot precharge without a valid UDC reading.
+
+> **The ISA shunt and VCU must share the same permanent 12V feed** — this is required for the init sequence to work and for accurate readings during charging when the car is at rest.
+
+1. Wire the ISA shunt to 12V+ and the CAN bus
+2. Set `shuntType` = ISA and `shuntCan` to the correct CAN bus — save to flash
+3. Set `IsaInit` = 1 — save to flash
+4. Power cycle the VCU and shunt **at the same time** (they share the same 12V feed)
+5. The shunt will initialise — `udc` in Spot Values should now show a reading
+6. Set `IsaInit` = 0 — save to flash
+7. Reboot the VCU
+
+> **If the shunt doesn't initialise:** Separate the shunt and VCU power supplies temporarily, power cycle the shunt, then power the VCU 2–3 seconds later. This fixes an init timing issue seen with some units.
 
 ---
 
@@ -87,8 +101,8 @@ Save to flash.
 
 | Parameter | Description | Bench test value | Real vehicle value |
 |---|---|---|---|
-| `udcmin` | Minimum voltage — below this, VCU will not enter run | 20V | ~80% of minimum pack voltage |
-| `udclim` | Maximum voltage — above this, VCU derates | High value (e.g. 500V) | Just above max charged pack voltage |
+| `udcmin` | Minimum voltage — below this, VCU will not enter run | **450V** (firmware default) | Set to ~80% of minimum pack voltage — **must lower for most builds** |
+| `udclim` | Maximum voltage — above this, VCU derates | **520V** (firmware default) | Set just above your fully charged pack voltage |
 | `udcsw` | Voltage at which precharge is complete and main contactor closes | 15V (for bench with no HV) | ~95% of nominal pack voltage |
 
 For initial LV bench testing with no HV connected, set `udcsw` to a low value (15–20V) so precharge "completes" quickly and lets you verify the sequence.
@@ -188,8 +202,8 @@ Even without HV or a connected inverter, the VCU should be sending torque comman
 | `shuntType` | Match your hardware | ISA, SBOX, VAG, or LEAF |
 | `inverterCan` | CAN bus your inverter is on | |
 | `shuntCan` | CAN bus your shunt is on | |
-| `udcmin` | 20V (bench) / ~80% min pack V | |
-| `udclim` | 500V (bench) / above max pack V | |
+| `udcmin` | **450V** firmware default — lower to ~80% of min pack V | ⚠️ Default too high for most builds |
+| `udclim` | **520V** firmware default — set just above fully charged pack V | |
 | `udcsw` | 15V (bench) / ~95% nominal pack V | |
 | `potmode` | single or dual | Match wiring |
 | `potmin` | Just above off-throttle ADC reading | |
@@ -198,6 +212,10 @@ Even without HV or a connected inverter, the VCU should be sending torque comman
 | `pot2max` | Same for channel 2 (dual only) | |
 | `throtmin` | 0 | |
 | `throtmax` | **100** | Default is 0 — most common gotcha |
+| `throtmaxRev` | 30 | Firmware default limits reverse to 30% torque — raise if needed |
+| `revlim` | 6000 rpm | Firmware default — set appropriate for your motor |
+| `FanTemp` | 40°C | Cooling fan output activates above this heatsink temp |
+| `IsaInit` | toggle 0→1 | Toggle to trigger ISA shunt initialisation sequence |
 | `vehicle` | None or Classic | Unless integrating with OEM cluster |
 
 ---

@@ -23,13 +23,14 @@ Connecting HV to the OEM positive/negative terminals routes current through the 
 
 ### The Brass Pillars — Correct Connection
 
-Two brass pillars are accessed by removing a small black plastic cover and two M6 bolts (10mm head). These connect HV directly to the motor drive stage, bypassing the boost converter entirely.
+The brass pillars are **custom spacers** — they are not supplied with the inverter. You will need to fabricate or purchase them. They are brass standoffs (typically M6, approx 10–15mm length) that allow your HV cables to reach the internal busbars of the inverter once the boost converter cover is removed.
 
-**How to access:**
+**How to access and connect:**
 1. Locate the black plastic cover on the inverter body
 2. Gently prize off the cover — Toyota uses adhesive
-3. Remove the two M6 bolts (10mm head)
-4. HV+ to one pillar, HV− to the other
+3. Remove the two M6 bolts (10mm head) to expose the internal busbars
+4. Install brass standoffs/pillars onto the busbar bolts to provide a connection point that extends out of the inverter body
+5. Connect HV+ to one pillar, HV− to the other
 
 > **For bench testing:** A 60V 5A power supply into the brass pillars is sufficient to verify sync serial communication and low-speed rotation. You do not need full pack voltage for initial bench testing.
 
@@ -108,11 +109,13 @@ Search eBay for "GS450h engine wire" or "GS450h transmission harness." Expect to
 
 ## Oil Pump System
 
-The GS450h inverter has its own internal oil cooling circuit. An electric oil pump must run continuously while the inverter is active — there is no mechanical pump drive in an EV conversion.
+The GS450h transmission uses hydraulic oil pressure to engage its internal clutch plates — this is what transfers torque from the motors to the output shaft. In an OEM vehicle this pressure is supplied by a mechanical pump driven by the engine. In an EV conversion there is no engine, so an electric oil pump is required.
+
+**Without oil pressure the transmission cannot transmit torque.** The inverter and motors can be running perfectly, but if the oil pump is not running the wheels will not turn. The pump must run from precharge and throughout run mode.
 
 ### Why It Matters
 
-If the oil pump is not running when the inverter is active, the inverter overheats. This is not a gradual problem — the pump must run from precharge, throughout run mode, and should not stop until the inverter is fully de-energised.
+The oil pump is not about cooling the inverter — it is about enabling traction. No pump = no clutch engagement = no drive. Start the pump before commanding any torque.
 
 ### Oil Pump Specifications
 

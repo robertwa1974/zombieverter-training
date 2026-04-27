@@ -62,7 +62,18 @@ PP detects whether a cable is physically plugged in. A resistor inside the cable
 | 680 Ω | 20A cable |
 | 220 Ω | 32A cable |
 
-**PP wiring:** Connect a 330Ω resistor from the VCU 5V supply (Pin 48) to the PP sense line. The cable's internal resistor forms a voltage divider to ground. Assign the `ProxPilot` function to an analogue input pin. Watch `PPVal` in Spot Values while plugging in a cable. Set `PPthreshold` just above the reading when the cable is fully inserted.
+**PP wiring — voltage divider circuit:**
+
+The PP sense line requires a two-resistor voltage divider:
+- **Upper resistor (pull-up):** 330Ω from VCU 5V supply (Pin 48) to the PP sense line
+- **Lower resistor (to ground):** This is the resistor built into the charge port or cable connector:
+  - **Type 1 (J1772) connectors:** 2.7kΩ to ground
+  - **Type 2 (IEC 62196) connectors:** 4.7kΩ to ground
+  - Note: many charge ports already have this lower resistor installed — check before adding one
+
+The VCU analogue input reads the voltage at the midpoint of this divider. Different cable PP resistors change the midpoint voltage, allowing the VCU to detect both cable presence and current rating.
+
+**Setup:** Assign the `ProxPilot` function to an analogue input pin. Watch `PPVal` in Spot Values while plugging in a cable. Set `PPthreshold` just above the reading when the cable is fully inserted. Note that different cables (13A vs 32A) will give different `PPVal` readings — set your threshold for the lowest-rated cable you intend to use.
 
 > **Leaf PDM exception:** The Leaf PDM detects cable insertion internally via its own CP circuit. You do not need to wire PP to the VCU for a Leaf PDM build.
 

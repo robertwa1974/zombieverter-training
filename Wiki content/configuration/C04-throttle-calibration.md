@@ -149,12 +149,14 @@ If `potnom` reads a small non-zero value at rest, your `potmin` is set slightly 
 
 ## Additional Throttle Parameters
 
-| Parameter | Description |
-|---|---|
-| `throtramp` | Rate of potnom increase per 10ms interval. Limits how fast torque rises when pedal is pressed quickly. Higher = more responsive, lower = smoother. |
-| `throtramprpm` | Motor RPM above which `throtramp` no longer applies. Above this speed, full throttle response is allowed. |
-| `revlim` | Motor RPM hard rev limiter. |
-| `throttledead` | Percentage of pedal travel that is deadband before torque begins. |
+| Parameter | Default | Description |
+|---|---|---|
+| `throtramp` | 10 %/10ms | Rate of potnom increase per 10ms interval. Limits how fast torque rises when pedal is pressed quickly. Higher = more responsive, lower = smoother. |
+| `throtramprpm` | 20000 rpm | Motor RPM above which `throtramp` no longer applies. Default effectively disables the ramp limit — lower this if you only want smooth low-speed response. |
+| `revlim` | 6000 rpm | Motor RPM hard rev limiter. Set appropriate for your motor — 6000 rpm is conservative for most builds. |
+| `throtmaxRev` | 30% | Maximum torque allowed in reverse direction. Firmware default is deliberately conservative — raise if your reverse feels sluggish. |
+| `throtrpmfilt` | 15 rpm/10ms | Filters rapid speed changes fed into the throttle map. If you have low-speed judder, increase this value. |
+| `throtdead` | 10% | Deadband around zero potnom before torque begins. |
 
 ---
 

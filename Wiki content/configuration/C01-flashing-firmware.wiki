@@ -50,6 +50,8 @@ For routine firmware updates on a working board, use the web interface. No exter
 # Select your <code>.bin</code> file
 # Upload and wait for the update to complete
 
+: '''Known issue — recent units:''' Some newer VCU boards do not automatically assign an IP address to your device via DHCP. If <code>192.168.4.1</code> does not load, manually set your computer's Wi-Fi adapter to a static IP of <code>192.168.4.2</code> (subnet <code>255.255.255.0</code>), then try again. Any address in the <code>192.168.4.x</code> range other than <code>.1</code> will work.
+
 '''Important notes:'''
 * The file must be named <code>stm32_vcu.bin</code> — rename it if it has a version suffix
 * Windows 10 has known reliability issues with the UART update method. If you are on Windows 10, consider using Ubuntu (WSL2 is fine) or switching to the ST-Link method if the UART update fails

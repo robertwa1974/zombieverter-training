@@ -177,31 +177,41 @@ For bench testing without the full shifter assembly, specific pins on the Gear S
 
 {| class="wikitable"
 |-
-! Parameter || ! Value for GS450h
+! Parameter || ! Value for GS450h || ! Notes
 |-
-| `inverter` || | `2` (GS450H)
+| `inverter` || | `2` (GS450H) || | 
 |-
-| `vehicle` || | Match your donor vehicle (Classic, BMW E46, etc.)
+| `vehicle` || | Match your donor vehicle (Classic, BMW E46, etc.) || | 
 |-
-| `transmission` || | `auto` or per your shifter setup
+| `transmission` || | `auto` or per your shifter setup || | 
 |-
-| `gearLever` || | Match your gear selector type
+| `gearLever` || | Match your gear selector type || | 
+|-
+| `MotActive` || | `0` (Mg1and2) || | Controls which motor(s) receive torque commands. 0=both, 1=MG1 only, 2=MG2 only, 3=blend MG2→MG1 above 50% potnom. Default (0) drives both motors with the same percentage request.
+|-
+| `OilPump` || | `50` (default) || | Oil pump PWM duty cycle at run setpoint — start at 50%, adjust based on operating temps
 |}
 
 ----
 
 == Oil Pump ==
 
-The GS450h inverter has its own oil cooling circuit with an electric oil pump. The ZombieVerter controls this pump via:
+The GS450h transmission requires hydraulic oil pressure to engage its internal clutch plates and enable traction. Without oil pressure the transmission cannot transmit torque — the inverter can be running perfectly and the wheels will not turn. An electric oil pump replaces the mechanical pump that the OEM engine would have driven.
+
+The ZombieVerter controls this pump via:
 
 {| class="wikitable"
 |-
 ! VCU function || ! Type || ! Notes
 |-
 | `GS450Hpump` || | PWM OUTPUT || | Controls oil pump speed proportionally
+|-
+| `OilPump` || | Parameter || | PWM duty cycle — default 50%
 |}
 
-Assign <code>GS450Hpump</code> to the <code>Pump PWM</code> pin in the configurable output assignments. The pump must run when the inverter is operating to provide oil pressure to the transmission to allow traction
+Assign <code>GS450Hpump</code> to the <code>Pump PWM</code> pin in the configurable output assignments. The pump must run from precharge through to full de-energisation. Start at the default 50% duty cycle.
+
+: '''⚠️ Wire the oil pump directly from the 12V bus with its own dedicated fuse (~25A) — do not power it from a VCU output pin.'''
 
 ----
 

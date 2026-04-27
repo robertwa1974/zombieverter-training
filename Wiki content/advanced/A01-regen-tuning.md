@@ -32,6 +32,19 @@ There are two distinct regen mechanisms:
 
 ## The Key Parameters
 
+### Complete Regen Parameter Reference
+
+| Parameter | Default | Range | Description |
+|---|---|---|---|
+| `throtmin` | -100% | -100 to 0 | Minimum (most negative) potnom allowed at all times — sets throttle-lift regen level |
+| `regenmax` | -10% | -35 to 0 | Maximum regen as a potnom percentage, scaled by motor RPM |
+| `regenrpm` | 1500 rpm | 100–10000 | RPM at which `regenmax` is fully applied. Below this, regen tapers to 0 at 100 rpm |
+| `regenendrpm` | 100 rpm | 100–10000 | Below this RPM, regen is zero — prevents regen stall |
+| `regenBrake` | -10% | -35 to 0 | Brake pedal regen — negative potnom applied when brake pressed, scaled by RPM |
+| `regenramp` | 1 %/10ms | 0.1–100 | Ramp speed entering regen. At 1, reaching -30% braking takes 300ms |
+| `RegenBrakeLight` | -15% | -100 to 0 | Potnom threshold below which the brake light output activates |
+| `revRegen` | Off | On/Off | Whether regen is active in reverse direction (V2.20A+) |
+
 ### throtmin — Throttle-Lift Regen
 
 | throtmin value | Effect |
@@ -45,9 +58,21 @@ Start conservative (e.g. -5) and increase gradually. Aggressive regen values fee
 
 > Damien's personal preference for his E39 GS450h build: "I'm not a huge fan of regen myself" — but notes that many builders want it for practical range extension and one-pedal driving feel.
 
+### regenmax and RPM tapering
+
+`regenmax` is not applied flat — the VCU tapers it based on motor RPM. At `regenrpm` (default 1500) the full value applies. Below `regenendrpm` (default 100 rpm) regen is zero. This prevents regen stall at low speed and jerky stops.
+
+### Brake pedal regen — regenBrake
+
+Separate from throttle-lift regen. Applies additional negative potnom when the brake pedal input (Pin 49) is active. Useful for stronger blended braking feel without making throttle-lift too aggressive. Default is -10% — same as `regenmax`.
+
+### RegenBrakeLight
+
+Sets the potnom threshold below which the brake light output activates during regen. Default -15% means the brake lights come on when regen exceeds 15% — ensures following drivers see brake lights during meaningful deceleration, even with no mechanical braking.
+
 ### brakelight output
 
-When regen is active — either from throttle lift or brake pedal — the VCU can activate the brake lights via an assigned output pin. Assign the `BrakeLight` output function to a digital output pin in the Dout section. Without this, regen deceleration happens without brake lights — a safety concern.
+Assign the `BrakeLight` output function to a digital output pin in the Dout section. Without this, regen deceleration happens without brake lights — a safety concern.
 
 ### revRegen (V2.20A+)
 
