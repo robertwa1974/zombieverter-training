@@ -1,8 +1,8 @@
 = I04 — Mitsubishi Outlander PHEV Drive Unit =
 
-'''Track:''' Integration  
-'''Prerequisites:''' C03 — Essential Parameters: First Start, W03 — Contactor & Precharge  
-'''Audience:''' Intermediate  
+'''Track:''' Integration<br>
+'''Prerequisites:''' C03 — Essential Parameters: First Start, W03 — Contactor & Precharge<br>
+'''Audience:''' Intermediate<br>
 '''Estimated reading time:''' 12 minutes
 
 ----
@@ -11,10 +11,10 @@
 
 The Mitsubishi Outlander PHEV contains separate front and rear drive units — each with its own motor, inverter, and three-phase connection. Either or both can be used in a conversion. The interface is CAN-based, similar to the Nissan Leaf but with Mitsubishi-specific message IDs.
 
-'''Front drive unit VCU parameter:''' <code>inverter</code> = (check current wiki — Outlander front)  
+'''Front drive unit VCU parameter:''' <code>inverter</code> = (check current wiki — Outlander front)<br>
 '''Rear drive unit VCU parameter:''' <code>inverter</code> = 8 (RearOutlander)
 
-: '''Note on versions:''' Early firmware used <code>inverter</code> = 6 for Outlander, which has since been deprecated. Use <code>inverter</code> = 8 for the rear unit. Check the current wiki for the front unit value as this has changed across firmware versions.
+'''Note on versions:''' Early firmware used <code>inverter</code> = 6 for Outlander, which has since been deprecated. Use <code>inverter</code> = 8 for the rear unit. Check the current wiki for the front unit value as this has changed across firmware versions.
 
 ----
 
@@ -23,18 +23,19 @@ The Mitsubishi Outlander PHEV contains separate front and rear drive units — e
 The Outlander PHEV has distinct front and rear units:
 
 {| class="wikitable"
+! !! Front !! Rear
 |-
-! Motor type || ! PMAC || ! PMAC
+| Motor type || PMAC || PMAC
 |-
-| Peak power || | ~60kW || | ~60kW
+| Peak power || ~60kW || ~60kW
 |-
-| Orientation || | Transverse FWD || | Longitudinal RWD
+| Orientation || Transverse FWD || Longitudinal RWD
 |-
-| Interface || | CAN || | CAN
+| Interface || CAN || CAN
 |-
-| ZV support || | Partial — check wiki || | Full — V2.15A+
+| ZV support || Partial — check wiki || Full — V2.15A+
 |-
-| Common use || | Front-wheel drive conversions || | Rear-wheel drive conversions, longitudinal builds
+| Common use || Front-wheel drive conversions || Rear-wheel drive conversions, longitudinal builds
 |}
 
 The rear unit is the more commonly used in ZombieVerter conversions and has more complete firmware support.
@@ -43,7 +44,7 @@ The rear unit is the more commonly used in ZombieVerter conversions and has more
 
 == Minimum Voltage ==
 
-: '''The Outlander inverter requires a minimum of approximately 200V to operate.''' Below this threshold the inverter will not produce torque. This is hardcoded in the inverter and cannot be changed from the VCU.
+{{Warning|The Outlander inverter requires a minimum of approximately 200V to operate. Below this threshold the inverter will not produce torque. This is hardcoded in the inverter and cannot be changed from the VCU.}}
 
 For bench testing: use a bench power supply at a low voltage to verify CAN communication. The inverter will communicate below 200V — it just won't spin. You need pack voltage to verify full operation.
 
@@ -54,20 +55,19 @@ For bench testing: use a bench power supply at a low voltage to verify CAN commu
 The Outlander inverter needs:
 
 {| class="wikitable"
+! Signal !! Notes
 |-
-! Signal || ! Notes
+| 12V+ permanent || To inverter logic power
 |-
-| 12V+ permanent || | To inverter logic power
+| Ground || Chassis ground
 |-
-| Ground || | Chassis ground
+| CAN H / CAN L || 500 kbps, VCU CAN1 or CAN2
 |-
-| CAN H / CAN L || | 500 kbps, VCU CAN1 or CAN2
+| HV+ / HV− || Via contactors and precharge as normal
 |-
-| HV+ / HV− || | Via contactors and precharge as normal
+| Motor three-phase || Three-phase AC to motor (integral in most units)
 |-
-| Motor three-phase || | Three-phase AC to motor (integral in most units)
-|-
-| Resolver || | Motor position sensor — OEM harness or equivalent
+| Resolver || Motor position sensor — OEM harness or equivalent
 |}
 
 The motor and inverter are typically inseparable in the Outlander unit — the motor is integrated into the transaxle housing and the inverter bolts directly on. You take them together from the donor vehicle.
@@ -98,7 +98,23 @@ The Outlander drive unit requires active liquid cooling. The OEM system uses a d
 * Assign <code>CoolantPump</code> to a VCU digital output pin
 * The pump should run whenever the inverter is active — assign to activate in precharge and run mode
 
-The Outlander water heater (cabin heating) is also supported by the ZombieVerter and communicates via CAN. Separate VCU parameter assignment required.
+----
+
+== Cabin Heater — CAN Variant Only (2016+) ==
+
+The Outlander PHEV uses two different water heater designs across model years:
+
+{| class="wikitable"
+! Variant !! Years !! Interface !! ZombieVerter support
+|-
+| Resistive (non-CAN) || Pre-2016 || Direct 12V/HV switching — no CAN || '''Not supported'''
+|-
+| CAN-controlled || 2016+ || CAN bus commands || '''Supported'''
+|}
+
+{{Warning|The ZombieVerter can only control the CAN-bus water heater from 2016+ Outlander PHEVs. Pre-2016 units use a resistive heater with no CAN interface and cannot be controlled by the VCU. If your donor vehicle is pre-2016, you will need an alternative cabin heating solution.}}
+
+For supported (2016+) units, the heater communicates via CAN and requires a separate VCU parameter assignment. Refer to the openinverter wiki for the current CAN message IDs and parameter settings.
 
 ----
 
@@ -115,10 +131,16 @@ With 12V applied and CAN connected:
 
 '''Outlander front unit CAN parameter value changed between firmware versions.''' Always verify against the current openinverter wiki before setting this for the front unit — the deprecated value 6 (used before V2.17A) will not work correctly on current firmware.
 
-'''Rear unit bug fixed in V2.17A (May 2024).''' If using the rear unit, firmware must be V2.17A or later. Earlier firmware had a bug that prevented correct rear unit operation.
+'''Rear unit bug fixed in V2.17A (May 2024).''' If using the rear unit, firmware must be V2.17A or later. Earlier firmware had a bug that prevented correct rear unit torque control.
 
 ----
 
-''Source: Damien Maguire @Evbmw — "Mitsubishi Outlander Front Drive Unit" (May 2021) · openinverter.org forum''  
-''Rear Outlander support: V2.15A · Rear unit bug fix: V2.17A · Old inverter=6 deprecated''  
+== What's Next ==
+
+* '''A01''' — Regen Tuning
+* '''A02''' — Charge Control & Popular Chargers (Outlander OBC detail)
+
+----
+
+''Source: openinverter.org wiki | Damien Maguire / @Evbmw video series''<br>
 ''Last verified against firmware: V2.30A (August 2025)''

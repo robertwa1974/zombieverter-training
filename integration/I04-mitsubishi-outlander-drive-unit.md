@@ -84,7 +84,20 @@ The Outlander drive unit requires active liquid cooling. The OEM system uses a d
 - Assign `CoolantPump` to a VCU digital output pin
 - The pump should run whenever the inverter is active — assign to activate in precharge and run mode
 
-The Outlander water heater (cabin heating) is also supported by the ZombieVerter and communicates via CAN. Separate VCU parameter assignment required.
+---
+
+## Cabin Heater — CAN Variant Only (2016+)
+
+The Outlander PHEV uses two different water heater designs across model years:
+
+| Variant | Years | Interface | ZombieVerter support |
+|---|---|---|---|
+| Resistive (non-CAN) | Pre-2016 | Direct 12V/HV switching — no CAN | **Not supported** |
+| CAN-controlled | 2016+ | CAN bus commands | **Supported** |
+
+> **⚠️ The ZombieVerter can only control the CAN-bus water heater from 2016+ Outlander PHEVs.** Pre-2016 units use a resistive heater with no CAN interface and cannot be controlled by the VCU. If your donor vehicle is pre-2016, you will need an alternative cabin heating solution.
+
+For supported (2016+) units, the heater communicates via CAN and requires a separate VCU parameter assignment. Refer to the openinverter wiki for the current CAN message IDs and parameter settings.
 
 ---
 
@@ -101,10 +114,16 @@ With 12V applied and CAN connected:
 
 **Outlander front unit CAN parameter value changed between firmware versions.** Always verify against the current openinverter wiki before setting this for the front unit — the deprecated value 6 (used before V2.17A) will not work correctly on current firmware.
 
-**Rear unit bug fixed in V2.17A (May 2024).** If using the rear unit, firmware must be V2.17A or later. Earlier firmware had a bug that prevented correct rear unit operation.
+**Rear unit bug fixed in V2.17A (May 2024).** If using the rear unit, firmware must be V2.17A or later. Earlier firmware had a bug that prevented correct rear unit torque control.
 
 ---
 
-*Source: Damien Maguire @Evbmw — "Mitsubishi Outlander Front Drive Unit" (May 2021) · openinverter.org forum*  
-*Rear Outlander support: V2.15A · Rear unit bug fix: V2.17A · Old inverter=6 deprecated*  
+## What's Next
+
+- **A01** — Regen Tuning
+- **A02** — Charge Control & Popular Chargers (Outlander OBC detail)
+
+---
+
+*Source: openinverter.org wiki | Damien Maguire / @Evbmw video series*  
 *Last verified against firmware: V2.30A (August 2025)*

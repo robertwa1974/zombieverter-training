@@ -1,9 +1,9 @@
 = I03 — Toyota Lexus GS450h Transaxle =
 
-'''Track:''' Inverter Integration  
-'''Prerequisites:''' I00 — Generic Inverter Integration Principles, W07 — CAN Bus Wiring  
-'''Audience:''' Intermediate  
-'''Video source:''' "ZombieVerter VCU Prius Inverter Connection" series (May–Jun 2024); "2013 Lexus GS450h Transmission Wire Harness DIY EV Conversion" (Jun 2025, Good Enuff Garage)  
+'''Track:''' Inverter Integration<br>
+'''Prerequisites:''' I00 — Generic Inverter Integration Principles, W07 — CAN Bus Wiring<br>
+'''Audience:''' Intermediate<br>
+'''Video source:''' "ZombieVerter VCU Prius Inverter Connection" series (May–Jun 2024); "2013 Lexus GS450h Transmission Wire Harness DIY EV Conversion" (Jun 2025, Good Enuff Garage)<br>
 '''Estimated reading time:''' 20 minutes
 
 ----
@@ -15,20 +15,19 @@ The Lexus GS450h (and GS300h) transaxle is one of the most popular choices for r
 Key differences from Leaf/Outlander/Prius integrations:
 
 {| class="wikitable"
+! Feature !! Leaf / Outlander !! GS450h
 |-
-! Feature || ! Leaf / Outlander || ! GS450h
+| Drive unit || Transverse FWD || Longitudinal RWD
 |-
-| Drive unit || | Transverse FWD || | Longitudinal RWD
+| Motor count || 1 traction motor || 2 motors (MG1 + MG2)
 |-
-| Motor count || | 1 traction motor || | 2 motors (MG1 + MG2)
+| Reverse gear || Software (negative torque) || Physical gear in transmission
 |-
-| Reverse gear || | Software (negative torque) || | Physical gear in transmission
+| Physical shifter || Not needed || Required (Park/Reverse/Neutral/Drive)
 |-
-| Physical shifter || | Not needed || | Required (Park/Reverse/Neutral/Drive)
+| Inverter comms || CAN bus || Synchronous serial (8-wire)
 |-
-| Inverter comms || | CAN bus || | Synchronous serial (8-wire)
-|-
-| Gearbox || | None (single fixed ratio) || | Two-speed (high ≈ 2:1, low ≈ 4:1)
+| Gearbox || None (single fixed ratio) || Two-speed (high ≈ 2:1, low ≈ 4:1)
 |}
 
 ----
@@ -38,15 +37,24 @@ Key differences from Leaf/Outlander/Prius integrations:
 The GS450h contains two motor-generators:
 
 {| class="wikitable"
+! Motor !! Role
 |-
-! Motor || ! Role
+| '''MG1''' || Generator / starter — primarily used for engine starting and power split in the OEM hybrid system
 |-
-| **MG1** || | Generator / starter — primarily used for engine starting and power split in the OEM hybrid system
-|-
-| **MG2** || | Traction motor — the primary drive motor in an EV conversion
+| '''MG2''' || Traction motor — the primary drive motor in an EV conversion
 |}
 
 In a ZombieVerter conversion, MG2 is used for traction. MG1 may or may not be utilised depending on the conversion.
+
+----
+
+== HV Connection — Critical Warning ==
+
+{{Warning|'''DO NOT connect HV to the OEM positive/negative terminals on the GS450h inverter.''' Doing so routes current through the boost inductor and boost IGBT, which will destroy the inverter under sustained load. At least two confirmed inverter failures from this mistake are documented in the community.}}
+
+HV must be connected to the '''brass pillars''' — custom M6 brass standoffs installed onto the internal busbars, accessed by removing the boost converter cover. The brass pillars are '''not supplied''' with the inverter; you must fabricate or purchase them.
+
+See '''I03-X — GS450h Wiring & Oil Pump Deep Dive''' for the full step-by-step procedure: cover removal, busbar access, pillar installation, and HV cable connection.
 
 ----
 
@@ -64,19 +72,18 @@ Unlike the Leaf (CAN) and Outlander (CAN), the GS450h inverter uses a '''synchro
 The four synchronous serial pairs connect to the following VCU pins:
 
 {| class="wikitable"
+! Signal pair !! VCU Pin (−/negative) !! VCU Pin (+/positive) !! Notes
 |-
-! Signal pair || ! VCU Pin (−/negative) || ! VCU Pin (+/positive) || ! Notes
+| REQ || 16 || 17 || Request
 |-
-| REQ || | 16 || | 17 || | Request
+| CLK || 18 || 19 || Clock
 |-
-| CLK || | 18 || | 19 || | Clock
+| MTH || 20 || 21 || Motor to hybrid (inverter → VCU)
 |-
-| MTH || | 20 || | 21 || | Motor to hybrid (inverter → VCU)
-|-
-| HTM || | 22 || | 23 || | Hybrid to motor (VCU → inverter)
+| HTM || 22 || 23 || Hybrid to motor (VCU → inverter)
 |}
 
-: Pin assignments may vary slightly between firmware versions and board revisions — always verify against the current wiki pinout diagram.
+Pin assignments may vary slightly between firmware versions and board revisions — always verify against the current wiki pinout diagram.
 
 ----
 
@@ -85,17 +92,18 @@ The four synchronous serial pairs connect to the following VCU pins:
 The GS450h inverter connector is a large multi-pin connector (approximately 36 pins) that combines:
 * The synchronous serial interface (8 pins used)
 * Power (12V supply — 2 wires redundant positive, 2 wires redundant ground)
-* Resolver connections - the resolver signals for MG1 and MG2, used for motor position sensing. This is '''OEM harness territory''' — use the original Toyota/Lexus wire harness wherever possible. Building resolver cables from scratch is possible but requires shielded twisted pairs and careful attention to wiring.
+* Resolver connections — the resolver signals for MG1 and MG2, used for motor position sensing. This is '''OEM harness territory''' — use the original Toyota/Lexus wire harness wherever possible. Building resolver cables from scratch is possible but requires shielded twisted pairs and careful attention to wiring.
+
+{{Note|This connector carries 12V logic power and signals only. HV connects separately via the brass pillars — see the HV Connection section above.}}
 
 === Power Wiring to the Inverter Connector ===
 
 {| class="wikitable"
+! Wire colour (OEM) !! Function !! Notes
 |-
-! Wire colour (OEM) || ! Function || ! Notes
+| Green (×2) || 12V positive supply to inverter || Two wires, combined — add an inline fuse
 |-
-| Green (×2) || | 12V positive supply to inverter || | Two wires, combined — add an inline fuse
-|-
-| White/black (×2) || | Ground || | Two wires, combined
+| White/black (×2) || Ground || Two wires, combined
 |}
 
 The redundant positive wires run from the connector back to a common point and rejoin — they are Toyota's built-in redundancy. In an EV conversion, join them together and run to a fused 12V supply.
@@ -120,16 +128,15 @@ Building these from scratch is achievable but error-prone. Buying the OEM harnes
 The GS450h "engine wire" harness (also called the transmission wire harness) contains everything you need but also a lot you don't need. A typical harness extraction yields:
 
 {| class="wikitable"
+! What you extract !! Used for
 |-
-! What you extract || ! Used for
+| MG1 resolver cable (4-pin or 10-pin connector) || Motor position sensing
 |-
-| MG1 resolver cable (4-pin or 10-pin connector) || | Motor position sensing
+| MG2 resolver cable || Motor position sensing
 |-
-| MG2 resolver cable || | Motor position sensing
+| Shift solenoid harness (SL1, SL2) || Transmission gear control (high/low)
 |-
-| Shift solenoid harness (SL1, SL2) || | Transmission gear control (high/low)
-|-
-| Neutral safety switch harness || | Park/Reverse/Neutral/Drive detection
+| Neutral safety switch harness || Park/Reverse/Neutral/Drive detection
 |}
 
 You'll only use approximately 12% of the total harness — the rest is OEM engine/hybrid control wiring that can be discarded.
@@ -155,19 +162,18 @@ On a 4th gen harness:
 The GS450h has two speeds — high gear (~2:1 ratio) and low gear (~4:1 ratio). The shift solenoids SL1 and SL2 control which gear the transmission is in. In ZombieVerter, these are controlled via:
 
 {| class="wikitable"
+! VCU pin assignment !! Function
 |-
-! VCU pin assignment || ! Function
+| Trans SL1− || Transmission solenoid 1 ground-side control
 |-
-| Trans SL1− || | Transmission solenoid 1 ground-side control
-|-
-| Trans SL2− || | Transmission solenoid 2 ground-side control
+| Trans SL2− || Transmission solenoid 2 ground-side control
 |}
 
 For basic operation, many builders leave the transmission in high gear and don't connect the shift solenoids. The zombie does have parameters for managing gear shifts, but this requires more advanced configuration.
 
 === Gear Shifter Switch ===
 
-The gear shifter switch tells the VCU which gear position the physical shifter is in (Park, Reverse, Neutral, Drive). The switch physically activates the parking pawil when in PARK, all other positions are simply an electrical switch. This is wired to the ZombieVerter which reads the switch and responds accordingly — it will not send torque in Park or Neutral.
+The gear shifter switch tells the VCU which gear position the physical shifter is in (Park, Reverse, Neutral, Drive). The switch physically activates the parking pawl when in PARK, all other positions are simply an electrical switch. This is wired to the ZombieVerter which reads the switch and responds accordingly — it will not send torque in Park or Neutral.
 
 For bench testing without the full shifter assembly, specific pins on the Gear Shifter switch can be shorted to simulate a Drive signal and allow torque commands. Refer to the openinverter wiki for the specific pins.
 
@@ -176,20 +182,19 @@ For bench testing without the full shifter assembly, specific pins on the Gear S
 == VCU Parameter Settings ==
 
 {| class="wikitable"
+! Parameter !! Value for GS450h !! Notes
 |-
-! Parameter || ! Value for GS450h || ! Notes
+| <code>inverter</code> || <code>2</code> (GS450H) ||
 |-
-| `inverter` || | `2` (GS450H) || | 
+| <code>vehicle</code> || Match your donor vehicle (Classic, BMW E46, etc.) ||
 |-
-| `vehicle` || | Match your donor vehicle (Classic, BMW E46, etc.) || | 
+| <code>transmission</code> || <code>auto</code> or per your shifter setup ||
 |-
-| `transmission` || | `auto` or per your shifter setup || | 
+| <code>gearLever</code> || Match your gear selector type ||
 |-
-| `gearLever` || | Match your gear selector type || | 
+| <code>MotActive</code> || <code>0</code> (Mg1and2) || Controls which motor(s) receive torque commands. 0=both, 1=MG1 only, 2=MG2 only, 3=blend MG2→MG1 above 50% potnom. Default (0) drives both motors with the same percentage request.
 |-
-| `MotActive` || | `0` (Mg1and2) || | Controls which motor(s) receive torque commands. 0=both, 1=MG1 only, 2=MG2 only, 3=blend MG2→MG1 above 50% potnom. Default (0) drives both motors with the same percentage request.
-|-
-| `OilPump` || | `50` (default) || | Oil pump PWM duty cycle at run setpoint — start at 50%, adjust based on operating temps
+| <code>OilPump</code> || <code>50</code> (default) || Oil pump PWM duty cycle at run setpoint — start at 50%, adjust based on operating temps
 |}
 
 ----
@@ -201,17 +206,16 @@ The GS450h transmission requires hydraulic oil pressure to engage its internal c
 The ZombieVerter controls this pump via:
 
 {| class="wikitable"
+! VCU function !! Type !! Notes
 |-
-! VCU function || ! Type || ! Notes
+| <code>GS450Hpump</code> || PWM OUTPUT || Controls oil pump speed proportionally
 |-
-| `GS450Hpump` || | PWM OUTPUT || | Controls oil pump speed proportionally
-|-
-| `OilPump` || | Parameter || | PWM duty cycle — default 50%
+| <code>OilPump</code> || Parameter || PWM duty cycle — default 50%
 |}
 
 Assign <code>GS450Hpump</code> to the <code>Pump PWM</code> pin in the configurable output assignments. The pump must run from precharge through to full de-energisation. Start at the default 50% duty cycle.
 
-: '''⚠️ Wire the oil pump directly from the 12V bus with its own dedicated fuse (~25A) — do not power it from a VCU output pin.'''
+{{Warning|Wire the oil pump directly from the 12V bus with its own dedicated fuse (~25A) — do not power it from a VCU output pin.}}
 
 ----
 
@@ -227,33 +231,33 @@ A basic connectivity check without HV:
 
 If <code>temphs</code> shows a non-zero, plausible temperature value (e.g., 25–35°C at room temperature), the sync serial connection is working and the inverter is communicating. If it shows 0 or negative, the sync serial is not connected correctly.
 
-: Note: The inverter will draw over 1A from the 12V supply at startup. If using a bench power supply, ensure it is set for at least 2A output.
+Note: The inverter will draw over 1A from the 12V supply at startup. If using a bench power supply, ensure it is set for at least 2A output.
 
 ----
 
 == Common GS450h Integration Issues ==
 
 {| class="wikitable"
+! Issue !! Cause !! Fix
 |-
-! Issue || ! Cause || ! Fix
+| No temp reading from inverter || Sync serial not connected or wrong pins || Re-verify pin assignments against current wiki pinout
 |-
-| No temp reading from inverter || | Sync serial not connected or wrong pins || | Re-verify pin assignments against current wiki pinout
+| Ground loop / noise interference || Laptop USB connected to logic analyser during same test || Disconnect USB/logic analyser, check chassis grounds
 |-
-| Ground loop / noise interference || | Laptop USB connected to logic analyser during same test || | Disconnect USB/logic analyser, check chassis grounds
+| System won't stay in run after restart || ISA shunt on ignition-switched power || Move shunt to permanent power supply
 |-
-| System won't stay in run after restart || | ISA shunt on ignition-switched power || | Move shunt to permanent power supply
-|-
-| Resolver errors || | Swapped MG1/MG2 connectors || | Swap resolver plugs
+| Resolver errors || Swapped MG1/MG2 connectors || Swap resolver plugs
 |}
 
 ----
 
 == What's Next ==
 
+* '''I03-X''' — GS450h Wiring & Oil Pump Deep Dive (HV bypass procedure, brass pillar installation, sync serial detail)
 * '''I04''' — Mitsubishi Outlander PHEV Drive Unit
 * '''A01''' — Regen Tuning (GS450h has specific regen considerations)
 
 ----
 
-''Source: "ZombieVerter VCU Prius Inverter Connection" series — Good Enuff Garage (May 2024) | "2013 Lexus GS450h Transmission Wire Harness" — Good Enuff Garage (Jun 2025) | openinverter.org wiki''  
+''Source: "ZombieVerter VCU Prius Inverter Connection" series — Good Enuff Garage (May 2024) | "2013 Lexus GS450h Transmission Wire Harness" — Good Enuff Garage (Jun 2025) | openinverter.org wiki''<br>
 ''Last verified against firmware: V2.30A (August 2025)''

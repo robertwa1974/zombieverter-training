@@ -38,6 +38,16 @@ In a ZombieVerter conversion, MG2 is used for traction. MG1 may or may not be ut
 
 ---
 
+## HV Connection — Critical Warning
+
+> **⚠️ DO NOT connect HV to the OEM positive/negative terminals on the GS450h inverter. Doing so routes current through the boost inductor and boost IGBT, which will destroy the inverter under sustained load. At least two confirmed inverter failures from this mistake are documented in the community.**
+
+HV must be connected to the **brass pillars** — custom M6 brass standoffs installed onto the internal busbars, accessed by removing the boost converter cover. The brass pillars are **not supplied** with the inverter; you must fabricate or purchase them.
+
+See **I03-X — GS450h Wiring & Oil Pump Deep Dive** for the full step-by-step procedure: cover removal, busbar access, pillar installation, and HV cable connection.
+
+---
+
 ## Synchronous Serial Interface
 
 Unlike the Leaf (CAN) and Outlander (CAN), the GS450h inverter uses a **synchronous serial bus** — an 8-wire interface specific to Toyota/Lexus systems. This is also used for the Toyota Prius Gen3 and the Lexus GS300h.
@@ -68,6 +78,8 @@ The GS450h inverter connector is a large multi-pin connector (approximately 36 p
 - The synchronous serial interface (8 pins used)
 - Power (12V supply — 2 wires redundant positive, 2 wires redundant ground)
 - Resolver connections - the resolver signals for MG1 and MG2, used for motor position sensing. This is **OEM harness territory** — use the original Toyota/Lexus wire harness wherever possible. Building resolver cables from scratch is possible but requires shielded twisted pairs and careful attention to wiring.
+
+> **Note:** This connector carries 12V logic power and signals only. HV connects separately via the brass pillars — see the HV Connection section above.
 
 ### Power Wiring to the Inverter Connector
 
@@ -135,7 +147,7 @@ For basic operation, many builders leave the transmission in high gear and don't
 
 ### Gear Shifter Switch
 
-The gear shifter switch tells the VCU which gear position the physical shifter is in (Park, Reverse, Neutral, Drive). The switch physically activates the parking pawil when in PARK, all other positions are simply an electrical switch. This is wired to the ZombieVerter which reads the switch and responds accordingly — it will not send torque in Park or Neutral.
+The gear shifter switch tells the VCU which gear position the physical shifter is in (Park, Reverse, Neutral, Drive). The switch physically activates the parking pawl when in PARK, all other positions are simply an electrical switch. This is wired to the ZombieVerter which reads the switch and responds accordingly — it will not send torque in Park or Neutral.
 
 For bench testing without the full shifter assembly, specific pins on the Gear Shifter switch can be shorted to simulate a Drive signal and allow torque commands. Refer to the openinverter wiki for the specific pins.
 
@@ -200,6 +212,7 @@ If `temphs` shows a non-zero, plausible temperature value (e.g., 25–35°C at r
 
 ## What's Next
 
+- **I03-X** — GS450h Wiring & Oil Pump Deep Dive (HV bypass procedure, brass pillar installation, sync serial detail)
 - **I04** — Mitsubishi Outlander PHEV Drive Unit
 - **A01** — Regen Tuning (GS450h has specific regen considerations)
 
