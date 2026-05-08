@@ -20,12 +20,12 @@ from reportlab.platypus import (
 )
 
 # ── Register Unicode fonts (DejaVu - full glyph coverage) ─────
-pdfmetrics.registerFont(TTFont('Body',          '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
-pdfmetrics.registerFont(TTFont('Body-Bold',     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
-pdfmetrics.registerFont(TTFont('Body-Italic',   '/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf'))
+pdfmetrics.registerFont(TTFont('Body',     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+pdfmetrics.registerFont(TTFont('Body-Bold','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('Body-Italic','/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf'))
 pdfmetrics.registerFont(TTFont('Body-BoldItalic','/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf'))
-pdfmetrics.registerFont(TTFont('Mono',          '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'))
-pdfmetrics.registerFont(TTFont('Mono-Bold',     '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('Mono',     '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'))
+pdfmetrics.registerFont(TTFont('Mono-Bold','/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'))
 pdfmetrics.registerFontFamily('Body',
     normal='Body', bold='Body-Bold',
     italic='Body-Italic', boldItalic='Body-BoldItalic')
@@ -59,12 +59,6 @@ TRACK_COLOURS = {
     'A': C_AMBER,
 }
 
-# ── Box-drawing / block characters ────────────────────────────
-BOX_CHARS = set('█▓▒░─━│┃┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬═║▄▀■□▪▫→←↑↓')
-
-def has_box_chars(text):
-    return any(c in BOX_CHARS for c in text)
-
 # ── Module catalogue ──────────────────────────────────────────
 MODULES = [
     ('F01', 'Foundation',    'What Is a VCU and Why Do You Need One',  'foundation/F01-what-is-a-vcu-and-why-do-you-need-one.md'),
@@ -96,6 +90,12 @@ MODULES = [
     ('A05', 'Advanced',      'CAN Gateway and Multi-Node Systems',      'advanced/A05-can-gateway-and-multi-node-systems.md'),
     ('A06', 'Advanced',      'Firmware Customisation and Contributing', 'advanced/A06-firmware-customisation-and-contributing.md'),
 ]
+
+# ── Box-drawing / block characters that need monospace font ───
+BOX_CHARS = set('█▓▒░─━│┃┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬═║▄▀■□▪▫')
+
+def has_box_chars(text):
+    return any(c in BOX_CHARS for c in text)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -136,7 +136,7 @@ def make_styles():
     s['mono'] = ParagraphStyle('zv_mono', parent=base['Normal'],
         fontName='Mono', fontSize=8.5, leading=13,
         backColor=colors.HexColor('#f4f4f4'),
-        borderPad=6, spaceAfter=6,
+        borderPad=4, spaceAfter=3,
         textColor=colors.HexColor('#1a1a2e'))
 
     s['note'] = ParagraphStyle('zv_note', parent=s['normal'],
@@ -171,48 +171,48 @@ def make_styles():
 
 
 # ══════════════════════════════════════════════════════════════
-# Inline markdown → ReportLab XML
+# Inline markdown to ReportLab XML
 # ══════════════════════════════════════════════════════════════
 def safe_xml(text):
-    """Escape bare ampersands."""
     return re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;|#)', '&amp;', text)
 
 
-def strip_html(text):
-    """Remove any literal HTML tags — e.g. <b>, </b>, <i>, </i> from markdown source."""
-    return re.sub(r'</?[a-zA-Z][^>]*>', '', text)
+def strip_raw_html(text):
+    """
+    Remove literal HTML bold/italic tags that appear in some markdown source files
+    (e.g. <b>Main wiki</b> in table cells). Must run on raw input BEFORE md_inline
+    so the stripping happens before ReportLab XML tags are added.
+    Only strips b, i, strong, em tags — leaves other content untouched.
+    """
+    text = re.sub(r'</?(?:b|i|strong|em)>', '', text)
+    return text
 
 
 def md_inline(text):
     """
     Convert inline markdown to ReportLab XML.
-    1. Strip any literal HTML tags first (prevents <b> showing as text)
-    2. Escape bare &
-    3. Bold (**text**)
-    4. Inline code (`text`) — strips * _ inside to prevent italic bleed
-    5. Italic (*text* and _text_)
+    Order: strip raw HTML tags -> escape & -> bold -> inline code -> italic
     """
-    # Step 1: strip raw HTML bold/italic that some markdown files contain
-    text = strip_html(text)
-    # Step 2: escape &
+    # Strip any literal <b> </b> <i> </i> from raw markdown source first
+    text = strip_raw_html(text)
     text = safe_xml(text)
-    # Step 3: bold
+    # Bold
     text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
-    # Step 4: inline code
+    # Inline code - strip * _ to prevent italic bleed
     def clean_code(m):
-        inner = m.group(1).replace('*', '').replace('_', '')
-        inner = inner.replace('<', '&lt;').replace('>', '&gt;')
+        inner = m.group(1).replace('*','').replace('_','')
+        inner = inner.replace('<','&lt;').replace('>','&gt;')
         return '<font name="Mono">' + inner + '</font>'
     text = re.sub(r'`([^`]+)`', clean_code, text)
-    # Step 5: italic
+    # Italic single asterisk
     text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'<i>\1</i>', text)
+    # Italic underscore (word-boundary protected)
     text = re.sub(r'(?<!\w)_(.+?)_(?!\w)', r'<i>\1</i>', text)
     return text
 
 
 def strip_inline(text):
-    """Plain text — strip all markdown and HTML formatting."""
-    text = strip_html(text)
+    text = strip_raw_html(text)
     text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
     text = re.sub(r'\*(.+?)\*',     r'\1', text)
     text = re.sub(r'_(.+?)_',       r'\1', text)
@@ -224,7 +224,6 @@ def strip_inline(text):
 # Rendering helpers
 # ══════════════════════════════════════════════════════════════
 def safe_para(text, style):
-    """Create Paragraph, falling back to plain text on XML parse errors."""
     try:
         return Paragraph(text, style)
     except Exception:
@@ -297,7 +296,7 @@ def md_to_story(md_text, styles, skip_h1=True):
     i = 0
     table_rows = []
     in_code_block = False
-    diagram_lines = []   # accumulates consecutive box-drawing lines
+    diagram_lines = []  # accumulates consecutive box-drawing lines
 
     def flush_table():
         nonlocal table_rows
@@ -310,11 +309,9 @@ def md_to_story(md_text, styles, skip_h1=True):
         table_rows.clear()
 
     def flush_diagram():
-        """Emit accumulated box-drawing lines as a single monospace block."""
         nonlocal diagram_lines
         if not diagram_lines:
             return
-        # Join with newline — ReportLab <br/> tag creates line breaks in a Paragraph
         joined = '<br/>'.join(safe_xml(l) for l in diagram_lines)
         story.append(safe_para(joined, styles['mono']))
         story.append(Spacer(1, 2*mm))
@@ -368,9 +365,9 @@ def md_to_story(md_text, styles, skip_h1=True):
             flush_table()
 
         # Headings
+        flush_diagram()
         m = re.match(r'^(#{1,4})\s+(.*)', stripped)
         if m:
-            flush_diagram()
             level = len(m.group(1))
             text = md_inline(m.group(2))
             if level == 1:
@@ -386,11 +383,9 @@ def md_to_story(md_text, styles, skip_h1=True):
             continue
 
         # Blockquote
+        flush_diagram()
         if stripped.startswith('>'):
-            flush_diagram()
             raw = stripped.lstrip('> ').strip()
-            # Strip HTML from blockquote content too
-            raw = strip_html(raw)
             text = md_inline(raw)
             upper = raw.upper()
             if 'DO NOT' in upper or 'WARNING' in upper or 'DANGER' in upper:
@@ -404,8 +399,8 @@ def md_to_story(md_text, styles, skip_h1=True):
             continue
 
         # Bullet list
+        flush_diagram()
         if re.match(r'^[-*]\s', stripped):
-            flush_diagram()
             text = md_inline(stripped[2:].strip())
             while i + 1 < len(lines):
                 nxt = lines[i + 1]
@@ -421,37 +416,35 @@ def md_to_story(md_text, styles, skip_h1=True):
             continue
 
         # Numbered list
+        flush_diagram()
         if re.match(r'^\d+\.\s', stripped):
-            flush_diagram()
             text = md_inline(re.sub(r'^\d+\.\s*', '', stripped))
             story.append(safe_para(text, styles['num']))
             i += 1
             continue
 
-        # Source / Last verified
+        # Source / Last verified lines
         if (stripped.startswith('*Source:') or stripped.startswith('*Last verified')
                 or stripped.startswith('Source:') or stripped.startswith('Last verified')):
-            flush_diagram()
             story.append(safe_para(safe_xml(stripped.strip('*')), styles['source']))
             i += 1
             continue
 
-        # Module metadata
+        # Module metadata lines
         if re.match(r'^\*\*(Track|Prerequisites|Audience|Estimated|Video source):', stripped):
-            flush_diagram()
             story.append(safe_para(md_inline(stripped), styles['note']))
             i += 1
             continue
 
-        # Box-drawing / ASCII diagram lines — accumulate into a single block
+        # Lines containing box-drawing / block chars — render as monospace
+         # Box-drawing / ASCII diagram lines — accumulate into single block
         if has_box_chars(stripped):
             flush_table()
             diagram_lines.append(stripped)
             i += 1
             continue
 
-        # Default: body paragraph
-        flush_diagram()
+        # Default: body paragraph — merge continuation lines
         text = md_inline(stripped)
         while i + 1 < len(lines):
             nxt = lines[i + 1].strip()
@@ -549,7 +542,7 @@ def build():
         leftMargin=MARGIN, rightMargin=MARGIN,
         topMargin=18*mm, bottomMargin=20*mm,
         title='ZombieVerter VCU Training Series',
-        author='Robertwa | openinverter.org community',
+        author='Rob Wagstaff | openinverter.org community',
         subject='ZombieVerter VCU V2.30A - Complete Reference Manual',
     )
 
