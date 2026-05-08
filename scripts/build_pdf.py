@@ -211,6 +211,22 @@ def md_inline(text):
     return text
 
 
+def md_inline_plain(text):
+    """
+    Simplified inline markdown for table cells.
+    Produces clean ReportLab XML: bold and code only, no italic nesting issues.
+    """
+    text = safe_xml(text)
+    # Bold
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    # Inline code — render as bold monospace, avoids font tag nesting
+    text = re.sub(r'`([^`]+)`', lambda m: '<b>' + safe_xml(m.group(1).replace('*','').replace('_','')) + '</b>', text)
+    # Italic — just remove markers in table context to avoid nesting issues
+    text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'\1', text)
+    text = re.sub(r'(?<!\w)_(.+?)_(?!\w)', r'\1', text)
+    return text
+
+
 def strip_inline(text):
     text = strip_raw_html(text)
     text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
@@ -241,19 +257,14 @@ def std_table(data, col_widths=None):
         col_widths = [w / n] * n
     ts = TableStyle([
         ('BACKGROUND',     (0,0), (-1,0),  C_TBL_HD),
-        ('TEXTCOLOR',      (0,0), (-1,0),  colors.white),
-        ('FONTNAME',       (0,0), (-1,0),  'Body-Bold'),
-        ('FONTSIZE',       (0,0), (-1,0),  9),
         ('ALIGN',          (0,0), (-1,-1), 'LEFT'),
         ('VALIGN',         (0,0), (-1,-1), 'TOP'),
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, C_TBL_ALT]),
-        ('FONTNAME',       (0,1), (-1,-1), 'Body'),
-        ('FONTSIZE',       (0,1), (-1,-1), 9),
         ('GRID',           (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')),
-        ('TOPPADDING',     (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING',  (0,0), (-1,-1), 4),
-        ('LEFTPADDING',    (0,0), (-1,-1), 5),
-        ('RIGHTPADDING',   (0,0), (-1,-1), 5),
+        ('TOPPADDING',     (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING',  (0,0), (-1,-1), 5),
+        ('LEFTPADDING',    (0,0), (-1,-1), 6),
+        ('RIGHTPADDING',   (0,0), (-1,-1), 6),
     ])
     t = Table(data, colWidths=col_widths, repeatRows=1)
     t.setStyle(ts)
@@ -358,7 +369,25 @@ def md_to_story(md_text, styles, skip_h1=True):
             if all(re.match(r'^[-: ]+$', c) for c in cells):
                 i += 1
                 continue
-            table_rows.append([md_inline(c) for c in cells])
+            # Wrap each cell in a Paragraph so ReportLab renders XML tags correctly
+            cell_style_hdr = ParagraphStyle('_thdr', fontName='Body-Bold',
+                fontSize=9, textColor=colors.white, leading=13,
+                parent=styles['normal'])
+            cell_style_body = ParagraphStyle('_tbody', fontName='Body',
+                fontSize=9, leading=13, parent=styles['normal'])
+            # Detect if this is the first row (header) — table_rows is empty
+            is_header = (len(table_rows) == 0)
+            cs = cell_style_hdr if is_header else cell_style_body
+            row_cells = []
+            for c in cells:
+                # Strip raw HTML, then apply markdown inline
+                clean = strip_raw_html(c)
+                xml = md_inline_plain(clean)
+                try:
+                    row_cells.append(Paragraph(xml, cs))
+                except Exception:
+                    row_cells.append(Paragraph(safe_xml(strip_inline(c)), cs))
+            table_rows.append(row_cells)
             i += 1
             continue
         else:
