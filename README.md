@@ -101,7 +101,6 @@ The slide deck also includes an **interactive HV junction box schematic** (Wirin
 
 These facts are verified across all modules and must remain accurate:
 
-- `udcsw` defaults to 330V — blocks all bench testing without HV
 - `throtmax` defaults to 0 — most common cause of "throttle does nothing"
 - `potmin` / `potmax` are set **inside** mechanical travel range (opposite to most systems)
 - ISA shunt requires **permanent** 12V — never ignition-switched
@@ -193,6 +192,7 @@ Pull requests welcome. Check `INDEX.md` for modules marked as pending. When a ne
 - **Good Enuff Garage** — Beginner-friendly ZombieVerter bench tutorials and E91 build content
 - **Mitch Elliott** — Audi e-tron OBC reverse engineering
 - **Project Gus** — BMW F30 CAN e-shifter reverse engineering
+- **Tom Debree** — Key contributor to Zombieveter FW evolution 
 - **openinverter.org community** — testing, documentation, inverter integration, forum knowledge base
 
 ---

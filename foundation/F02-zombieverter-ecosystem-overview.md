@@ -23,6 +23,7 @@ In short: **the ZombieVerter is the brain that makes mismatched salvaged EV part
 |---|---|
 | **Damien Maguire (EVBMW)** | Primary hardware designer, firmware lead, project creator |
 | **Johannes Huebner (johu)** | Creator of the underlying openinverter firmware framework the VCU builds on |
+| **Tom DeBree** | GitHub repository management, release gating, and ZombieVerter VCU firmware coordination — the person who controls what gets merged and when releases go out |
 | **openinverter.org community** | Ongoing firmware contributions, inverter support classes, testing, documentation |
 
 The project is genuinely open-source. Schematics and firmware are available on GitHub. PCB design files for the current production revision (V1.a) are available through Damien's Patreon at the Design Files tier.

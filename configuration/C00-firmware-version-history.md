@@ -229,6 +229,8 @@ The numeric values of the `inverter` parameter enum changed between versions. If
 
 ## Staying Current
 
+Firmware releases are managed by **Tom DeBree**, who coordinates what gets merged into the main codebase and controls when official releases are tagged on GitHub. If you see activity on the repository or a new release appear, Tom is typically the person who made it happen.
+
 - **GitHub releases:** github.com/damienmaguire/Stm32-vcu/releases — always check here before updating
 - **Forum thread:** openinverter.org/forum — development thread has release announcements
 - **Damien's YouTube:** New firmware releases are typically accompanied by a walkthrough video
