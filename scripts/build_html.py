@@ -821,9 +821,10 @@ function updateNav() {{
   backTop.classList.toggle('visible', scrollTop > 300);
 
   let active = null;
+  const mainRect = main.getBoundingClientRect();
   sections.forEach(sec => {{
-    const top = sec.offsetTop - main.offsetTop;
-    if (scrollTop + 80 >= top) active = sec.id;
+    const secRect = sec.getBoundingClientRect();
+    if (secRect.top - mainRect.top <= 80) active = sec.id;
   }});
 
   navItems.forEach(a => {{
@@ -840,12 +841,17 @@ navItems.forEach(a => {{
     e.preventDefault();
     const target = document.querySelector(a.getAttribute('href'));
     if (target) {{
-      main.scrollTo({{ top: target.offsetTop - 20, behavior: 'smooth' }});
+      // Use getBoundingClientRect for accurate position within the scroll container
+      const targetRect = target.getBoundingClientRect();
+      const mainRect   = main.getBoundingClientRect();
+      const scrollTo   = main.scrollTop + (targetRect.top - mainRect.top) - 20;
+      main.scrollTo({{ top: scrollTo, behavior: 'smooth' }});
     }}
     // Keep active nav item in view
     const navScroll = document.getElementById('nav-scroll');
-    const aTop = a.offsetTop - navScroll.offsetTop;
-    navScroll.scrollTo({{ top: aTop - navScroll.clientHeight / 2, behavior: 'smooth' }});
+    const aRect     = a.getBoundingClientRect();
+    const nsRect    = navScroll.getBoundingClientRect();
+    navScroll.scrollTo({{ top: navScroll.scrollTop + (aRect.top - nsRect.top) - navScroll.clientHeight / 2, behavior: 'smooth' }});
   }});
 }});
 
