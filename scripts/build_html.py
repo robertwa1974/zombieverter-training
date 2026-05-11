@@ -249,6 +249,8 @@ def build_nav(modules):
 
 # ── Module slide ───────────────────────────────────────────────
 def build_module(code, track, title, md_text):
+    from urllib.parse import quote
+    title_enc = quote(strip_inline(title))
     colour = TRACK_COLOURS.get(code[0], '#00c896')
     if 'X' in code:
         colour = '#ff4455'
@@ -263,6 +265,7 @@ def build_module(code, track, title, md_text):
   <div class="module-body">
 {content}
   </div>
+  <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--color-border-secondary);"><a href="feedback.html?module={code}&title={title_enc}" style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-decoration:none;border:1px solid var(--color-border-secondary);padding:5px 12px;border-radius:4px;">⚑ Report an issue with this module</a></div>
 </section>'''
 
 

@@ -529,6 +529,7 @@ nav{{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-
   <button class="nbtn jump" onclick="nextModule()">↓ Mod</button>
   <button class="nbtn" id="nextBtn" onclick="navigate(1)">Next →</button>
   <span class="kh">← → · ↑↓ Mod · Esc sidebar</span>
+  <a id="feedbackLink" href="feedback.html" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:4px 10px;border-radius:3px;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Report issue</a>
 </nav>
 </div></div>
 <script>
@@ -569,6 +570,9 @@ function updateUI() {{
   if (el) el.scrollIntoView({{ block: 'nearest' }});
   document.getElementById('prevBtn').disabled = cur === 0;
   document.getElementById('nextBtn').disabled = cur === TOTAL - 1;
+  const fl = document.getElementById('feedbackLink');
+  if (fl) fl.href = `feedback.html?module=${{encodeURIComponent(m.code)}}&title=${{encodeURIComponent(m.title)}}`;
+
 }}
 function goTo(n) {{ cur = Math.max(0, Math.min(n, TOTAL - 1)); updateUI(); }}
 function navigate(d) {{ goTo(cur + d); }}

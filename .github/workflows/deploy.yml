@@ -52,6 +52,8 @@ jobs:
           cp index-slides.html _site/
           cp zombieverter-training-slides.html _site/
           cp zombieverter-training-manual.pdf _site/
+          cp feedback.html _site/
+          cp tracker.html _site/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
