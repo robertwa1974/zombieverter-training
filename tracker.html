@@ -6,16 +6,16 @@
 <title>Issue Tracker — ZombieVerter Training</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
-:root{--bg:#0b0f10;--surface:#131a1c;--surface2:#1a2325;--accent:#00c896;--accent2:#00a0ff;--warn:#ffaa00;--danger:#ff4455;--text:#d8eeea;--muted:#4a6860;--border:#1e2d30;--mono:'Share Tech Mono',monospace;--display:'Barlow Condensed',sans-serif;--body:'Barlow',sans-serif;}
+:root{--bg:#0b0f10;--surface:#131a1c;--accent:#00c896;--accent2:#00a0ff;--warn:#ffaa00;--danger:#ff4455;--text:#d8eeea;--muted:#4a6860;--border:#1e2d30;--mono:'Share Tech Mono',monospace;--display:'Barlow Condensed',sans-serif;--body:'Barlow',sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
-.logo-box{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:bold;color:#000;flex-shrink:0;}
+.logo-box{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:bold;color:#000;}
 .logo-text{font-family:var(--display);font-size:16px;font-weight:700;color:#fff;}
 .header-sep{color:var(--border);font-size:20px;}
-.header-title{font-family:var(--display);font-size:15px;color:var(--muted);letter-spacing:.03em;}
-.header-actions{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.header-title{font-family:var(--display);font-size:15px;color:var(--muted);}
+.header-actions{margin-left:auto;display:flex;gap:10px;}
 .new-btn{font-family:var(--mono);font-size:11px;color:#0b0f10;background:var(--accent);text-decoration:none;padding:7px 14px;border-radius:4px;font-weight:bold;letter-spacing:.05em;transition:all .15s;}
 .new-btn:hover{background:#00e6b0;}
 .main{flex:1;max-width:900px;width:100%;margin:0 auto;padding:40px 24px;}
@@ -34,22 +34,14 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:1
 .section-head{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .section-head::after{content:'';flex:1;height:1px;background:var(--border);}
 .issues{display:flex;flex-direction:column;gap:10px;}
-.issue-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;border-left:3px solid var(--border);transition:border-color .15s;}
-.issue-card:hover{border-color:var(--muted);}
-.issue-card.open{border-left-color:var(--danger);}
-.issue-card.in-progress{border-left-color:var(--warn);}
-.issue-card.resolved{border-left-color:var(--accent);opacity:.65;}
+.issue-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;border-left:3px solid var(--danger);}
 .issue-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
-.issue-module{font-family:var(--mono);font-size:11px;font-weight:bold;color:var(--accent);background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.2);padding:3px 8px;border-radius:3px;white-space:nowrap;}
-.issue-type{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;white-space:nowrap;}
+.issue-module{font-family:var(--mono);font-size:11px;font-weight:bold;color:var(--accent);background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.2);padding:3px 8px;border-radius:3px;}
+.issue-type{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;}
 .te{background:rgba(255,68,85,.1);color:#ff9aa3;border:1px solid rgba(255,68,85,.2);}
 .tm{background:rgba(255,170,0,.1);color:#ffd080;border:1px solid rgba(255,170,0,.2);}
 .ts{background:rgba(0,160,255,.1);color:#7abbdd;border:1px solid rgba(0,160,255,.2);}
 .to{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);}
-.status-badge{margin-left:auto;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;}
-.so{background:rgba(255,68,85,.1);color:#ff9aa3;border:1px solid rgba(255,68,85,.2);}
-.sp{background:rgba(255,170,0,.1);color:#ffd080;border:1px solid rgba(255,170,0,.2);}
-.sr{background:rgba(0,200,150,.1);color:var(--accent);border:1px solid rgba(0,200,150,.2);}
 .issue-module-title{font-size:11px;color:var(--muted);margin-bottom:6px;font-family:var(--mono);}
 .issue-desc{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px;}
 .issue-meta{font-family:var(--mono);font-size:10px;color:var(--muted);}
@@ -58,6 +50,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:1
 .empty h3{font-family:var(--display);font-size:28px;font-weight:700;color:var(--muted);margin-bottom:8px;}
 .empty p{font-size:13px;color:var(--muted);}
 .loading{text-align:center;padding:48px;font-family:var(--mono);font-size:13px;color:var(--muted);}
+.refresh-note{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;margin-bottom:8px;}
 footer{border-top:1px solid var(--border);padding:20px 24px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted);}
 footer a{color:var(--accent);text-decoration:none;}
 </style>
@@ -78,24 +71,23 @@ footer a{color:var(--accent);text-decoration:none;}
 <div class="main">
   <div class="stats">
     <div class="stat"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total</div></div>
-    <div class="stat"><div class="stat-val" id="statOpen" style="color:var(--danger)">—</div><div class="stat-lbl">Open</div></div>
-    <div class="stat"><div class="stat-val" id="statProgress" style="color:var(--warn)">—</div><div class="stat-lbl">In Progress</div></div>
-    <div class="stat"><div class="stat-val" id="statResolved" style="color:var(--accent)">—</div><div class="stat-lbl">Resolved</div></div>
+    <div class="stat"><div class="stat-val" id="statError" style="color:var(--danger)">—</div><div class="stat-lbl">Errors</div></div>
+    <div class="stat"><div class="stat-val" id="statMissing" style="color:var(--warn)">—</div><div class="stat-lbl">Missing</div></div>
+    <div class="stat"><div class="stat-val" id="statSuggestion" style="color:var(--accent2)">—</div><div class="stat-lbl">Suggestions</div></div>
   </div>
 
   <div class="filters">
     <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-    <button class="filter-btn" onclick="setFilter('open',this)">Open</button>
-    <button class="filter-btn" onclick="setFilter('in-progress',this)">In Progress</button>
-    <button class="filter-btn" onclick="setFilter('resolved',this)">Resolved</button>
     <button class="filter-btn" onclick="setFilter('Error in content',this)">🔴 Errors</button>
     <button class="filter-btn" onclick="setFilter('Missing information',this)">🟡 Missing</button>
     <button class="filter-btn" onclick="setFilter('Suggestion',this)">💡 Suggestions</button>
-    <div class="search-wrap"><input type="search" id="searchInput" placeholder="Search issues…" oninput="renderIssues()"></div>
+    <button class="filter-btn" onclick="setFilter('Other',this)">💬 Other</button>
+    <div class="search-wrap"><input type="search" id="searchInput" placeholder="Search…" oninput="renderIssues()"></div>
   </div>
 
+  <div class="refresh-note" id="refreshNote"></div>
   <div class="section-head" id="issueCount">Loading…</div>
-  <div id="issueList"><div class="loading">Fetching issues…</div></div>
+  <div id="issueList"><div class="loading">Fetching issues from Google Sheets…</div></div>
 </div>
 
 <footer>
@@ -105,33 +97,70 @@ footer a{color:var(--accent);text-decoration:none;}
 </footer>
 
 <script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMJv1h0-0FKb940ENOr1zsFFiBN2oW855sT9QatYa1FykStaTn4qXaY-i8H_PtBTi8-2P4kRhYlmUI/pub?gid=1794246977&single=true&output=csv';
+
 let allIssues = [];
 let activeFilter = 'all';
 
-const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const fmtDate = iso => { try { return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); } catch(_){return iso;} };
-const typeClass = t => ({  'Error in content':'te','Missing information':'tm','Suggestion':'ts'}[t]||'to');
-const statusClass = s => ({'open':'so','in-progress':'sp','resolved':'sr'}[s]||'so');
-const statusLabel = s => ({'open':'OPEN','in-progress':'IN PROGRESS','resolved':'RESOLVED'}[s]||'OPEN');
-const cardClass = s => 'issue-card ' + (s||'open');
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-function setFilter(f,btn) {
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  // Skip header row, parse data rows
+  // Columns from Google Form: Timestamp, Module Code, Module Title, Issue Type, Description, Name/handle
+  return lines.slice(1).map(line => {
+    // Handle quoted fields with commas inside
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    return {
+      timestamp:    cols[0] || '',
+      module_code:  cols[1] || 'General',
+      module_title: cols[2] || '',
+      issue_type:   cols[3] || 'Other',
+      description:  cols[4] || '',
+      reporter:     cols[5] || 'Anonymous'
+    };
+  }).filter(i => i.description).reverse(); // newest first
+}
+
+function typeClass(t) {
+  if (t === 'Error in content')   return 'te';
+  if (t === 'Missing information') return 'tm';
+  if (t === 'Suggestion')         return 'ts';
+  return 'to';
+}
+
+function fmtDate(ts) {
+  try { return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+  catch(_) { return ts; }
+}
+
+function setFilter(f, btn) {
   activeFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderIssues();
 }
 
 function renderIssues() {
-  const q = (document.getElementById('searchInput').value||'').toLowerCase();
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
   const filtered = allIssues.filter(i => {
-    const mf = activeFilter==='all' || i.status===activeFilter || i.issue_type===activeFilter;
-    const ms = !q || [i.module_code,i.module_title,i.description,i.reporter,i.issue_type]
-      .some(f=>(f||'').toLowerCase().includes(q));
+    const mf = activeFilter === 'all' || i.issue_type === activeFilter;
+    const ms = !q || [i.module_code, i.module_title, i.description, i.reporter, i.issue_type]
+      .some(f => (f||'').toLowerCase().includes(q));
     return mf && ms;
   });
 
-  document.getElementById('issueCount').textContent = filtered.length + ' issue' + (filtered.length!==1?'s':'');
+  document.getElementById('issueCount').textContent =
+    filtered.length + ' issue' + (filtered.length !== 1 ? 's' : '');
 
   if (!filtered.length) {
     document.getElementById('issueList').innerHTML = `<div class="empty">
@@ -141,33 +170,48 @@ function renderIssues() {
     return;
   }
 
-  document.getElementById('issueList').innerHTML = filtered.map(i=>`
-    <div class="${cardClass(i.status)}">
-      <div class="issue-top">
-        <span class="issue-module">${esc(i.module_code)}</span>
-        <span class="issue-type ${typeClass(i.issue_type)}">${esc(i.issue_type)}</span>
-        <span class="status-badge ${statusClass(i.status)}">${statusLabel(i.status)}</span>
-      </div>
-      ${i.module_title?`<div class="issue-module-title">${esc(i.module_title)}</div>`:''}
-      <div class="issue-desc">${esc(i.description)}</div>
-      <div class="issue-meta">By ${esc(i.reporter||'Anonymous')} · ${fmtDate(i.date)}</div>
-    </div>`).join('');
+  document.getElementById('issueList').innerHTML = `<div class="issues">${
+    filtered.map(i => `
+      <div class="issue-card">
+        <div class="issue-top">
+          <span class="issue-module">${esc(i.module_code)}</span>
+          <span class="issue-type ${typeClass(i.issue_type)}">${esc(i.issue_type)}</span>
+        </div>
+        ${i.module_title ? `<div class="issue-module-title">${esc(i.module_title)}</div>` : ''}
+        <div class="issue-desc">${esc(i.description)}</div>
+        <div class="issue-meta">By ${esc(i.reporter)} · ${fmtDate(i.timestamp)}</div>
+      </div>`).join('')
+  }</div>`;
 }
 
 async function loadIssues() {
   try {
-    const r = await window.storage.get('zv_issues', true);
-    allIssues = r ? JSON.parse(r.value) : [];
-  } catch(_) { allIssues = []; }
+    // Bust cache so we always get latest submissions
+    const resp = await fetch(CSV_URL + '&_=' + Date.now());
+    const text = await resp.text();
+    allIssues = parseCSV(text);
 
-  document.getElementById('statTotal').textContent    = allIssues.length;
-  document.getElementById('statOpen').textContent     = allIssues.filter(i=>i.status==='open').length;
-  document.getElementById('statProgress').textContent = allIssues.filter(i=>i.status==='in-progress').length;
-  document.getElementById('statResolved').textContent = allIssues.filter(i=>i.status==='resolved').length;
-  renderIssues();
+    document.getElementById('statTotal').textContent      = allIssues.length;
+    document.getElementById('statError').textContent      = allIssues.filter(i=>i.issue_type==='Error in content').length;
+    document.getElementById('statMissing').textContent    = allIssues.filter(i=>i.issue_type==='Missing information').length;
+    document.getElementById('statSuggestion').textContent = allIssues.filter(i=>i.issue_type==='Suggestion').length;
+
+    const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('refreshNote').textContent = 'Last refreshed ' + now + ' · New submissions may take a few minutes to appear';
+
+    renderIssues();
+  } catch(err) {
+    document.getElementById('issueList').innerHTML = `<div class="empty">
+      <div class="empty-icon">⚠️</div><h3>Could not load issues</h3>
+      <p>Check your connection and try refreshing.</p>
+    </div>`;
+    document.getElementById('issueCount').textContent = 'error';
+  }
 }
 
 loadIssues();
+// Auto-refresh every 2 minutes
+setInterval(loadIssues, 120000);
 </script>
 </body>
 </html>
