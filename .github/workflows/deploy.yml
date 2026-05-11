@@ -1,21 +1,17 @@
-name: Build & Deploy ZombieVerter Training Site
+name: Build and Deploy
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:   # allow manual trigger from GitHub UI
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,37 +21,45 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: pip
+          python-version: '3.11'
 
-      - name: Install Python dependencies
-        run: pip install -r scripts/requirements.txt
+      - name: Install PDF dependencies
+        run: |
+          pip install reportlab
+          sudo apt-get install -y fonts-dejavu-core
 
-      - name: Build PDF manual
+      - name: Build PDF
         run: python3 scripts/build_pdf.py
 
-      - name: Assemble site output
+      - name: Build HTML deck
+        run: python3 scripts/build_html.py
+
+      - name: Commit built files back to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add zombieverter-training-manual.pdf zombieverter-training-complete.html
+          git diff --cached --quiet || git commit -m "ci: rebuild PDF and HTML deck [skip ci]"
+          git push
+
+      - name: Copy site files for Pages deploy
         run: |
           mkdir -p _site
-          # HTML slide deck
-          cp zombieverter-training-complete.html _site/index-slides.html
-          # Generated PDF
-          cp zombieverter-training-manual.pdf _site/zombieverter-training-manual.pdf
-          # Landing page
           cp scripts/site-index.html _site/index.html
+          cp zombieverter-training-complete.html _site/
+          cp zombieverter-training-manual.pdf _site/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
-  deploy:
-    needs: build
+  deploy-pages:
+    needs: build-and-deploy
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
