@@ -841,11 +841,7 @@ navItems.forEach(a => {{
     e.preventDefault();
     const target = document.querySelector(a.getAttribute('href'));
     if (target) {{
-      // Use getBoundingClientRect for accurate position within the scroll container
-      const targetRect = target.getBoundingClientRect();
-      const mainRect   = main.getBoundingClientRect();
-      const scrollTo   = main.scrollTop + (targetRect.top - mainRect.top) - 20;
-      main.scrollTo({{ top: scrollTo, behavior: 'smooth' }});
+      target.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
     }}
     // Keep active nav item in view
     const navScroll = document.getElementById('nav-scroll');
