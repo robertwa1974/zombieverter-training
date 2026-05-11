@@ -38,7 +38,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add zombieverter-training-manual.pdf zombieverter-training-complete.html
+          git add zombieverter-training-manual.pdf index-slides.html
           git diff --cached --quiet || git commit -m "ci: rebuild PDF and HTML deck [skip ci]"
           git push
 
@@ -46,7 +46,7 @@ jobs:
         run: |
           mkdir -p _site
           cp scripts/site-index.html _site/index.html
-          cp zombieverter-training-complete.html _site/
+          cp index-slides.html _site/
           cp zombieverter-training-manual.pdf _site/
 
       - name: Upload Pages artifact

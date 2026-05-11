@@ -10,7 +10,7 @@ import html
 from pathlib import Path
 
 REPO_ROOT   = Path(__file__).parent.parent
-OUTPUT_PATH = REPO_ROOT / "zombieverter-training-complete.html"
+OUTPUT_PATH = REPO_ROOT / "index-slides.html"
 
 # ── Module catalogue (mirrors build_pdf.py exactly) ───────────
 MODULES = [
