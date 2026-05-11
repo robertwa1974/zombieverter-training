@@ -34,12 +34,15 @@ jobs:
       - name: Build HTML deck
         run: python3 scripts/build_html.py
 
+      - name: Build classroom slide deck
+        run: python3 scripts/build_slides.py
+
       - name: Commit built files back to repo
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add zombieverter-training-manual.pdf index-slides.html
-          git diff --cached --quiet || git commit -m "ci: rebuild PDF and HTML deck [skip ci]"
+          git add zombieverter-training-manual.pdf index-slides.html zombieverter-training-slides.html
+          git diff --cached --quiet || git commit -m "ci: rebuild PDF, HTML deck, and slide deck [skip ci]"
           git push
 
       - name: Copy site files for Pages deploy
@@ -47,6 +50,7 @@ jobs:
           mkdir -p _site
           cp scripts/site-index.html _site/index.html
           cp index-slides.html _site/
+          cp zombieverter-training-slides.html _site/
           cp zombieverter-training-manual.pdf _site/
 
       - name: Upload Pages artifact
