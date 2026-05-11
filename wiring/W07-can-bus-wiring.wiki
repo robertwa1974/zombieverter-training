@@ -1,0 +1,167 @@
+= W07 — CAN Bus Wiring =
+
+'''Track:''' Wiring<br>
+'''Prerequisites:''' H01 — VCU Hardware Walkthrough, W03 — Contactor & Precharge<br>
+'''Audience:''' All levels<br>
+'''Estimated reading time:''' 10 minutes
+
+== Overview ==
+
+The ZombieVerter communicates with the inverter, shunt, BMS, charger, and other devices over CAN bus. Getting the physical wiring, termination, and bus assignment parameters right is essential — a misconfigured CAN bus is one of the most common sources of "nothing works" at first startup.
+
+== The Three CAN Buses ==
+
+The VCU has three CAN interfaces:
+
+{| class="wikitable"
+! Bus !! Physical interface !! Speed !! Notes
+|-
+| CAN1 || STM32 native CAN1 || '''500 kbps''' — hardcoded || Primary bus. CanSDO (web interface parameter access) is hardcoded here.
+|-
+| CAN2 || STM32 native CAN2 || '''500 kbps''' — hardcoded || Secondary bus. Remapped pins on the VCU PCB.
+|-
+| CAN3 || MCP25625 SPI-CAN chip || Configurable via <code>CAN3Speed</code> || Used for CHAdeMO (fault-tolerant CAN).
+|}
+
+Both CAN1 and CAN2 are hardcoded at 500 kbps in firmware — there is no parameter to change this. All devices on CAN1 or CAN2 must run at 500 kbps.
+
+=== CAN3 Speed Options ===
+
+<code>CAN3Speed</code> parameter values:
+
+{| class="wikitable"
+! Value !! Speed !! Use case
+|-
+| 0 || 33.3 kbps || CHAdeMO fault-tolerant CAN
+|-
+| 1 || 500 kbps || Standard high-speed CAN
+|-
+| 2 || 100 kbps || —
+|}
+
+== CAN1 vs CAN2 — Are They Interchangeable? ==
+
+For most devices, yes. Both run at 500 kbps and carry the same callback handler. However there is one hardware asymmetry:
+
+{{Note|'''CanSDO is hardcoded to CAN1.''' The SDO communication used by the openinverter protocol (CAN ID <code>0x601</code>) listens on both buses, but SDO replies are sent on CAN1 only. This only matters if you are using SDO-based tools directly — it does not affect normal VCU operation.}}
+
+In practice, use whichever bus your wiring makes convenient. The conventional layout — inverter on CAN1, shunt/BMS on CAN2 — simply reduces the chance of CAN ID conflicts between devices and is a good habit, not a hardware requirement.
+
+== Baud Rates by Device ==
+
+All devices used with CAN1 or CAN2 must run at '''500 kbps'''.
+
+{| class="wikitable"
+! Device !! Baud rate !! Notes
+|-
+| Nissan Leaf inverter || 500 kbps ||
+|-
+| Mitsubishi Outlander || 500 kbps ||
+|-
+| ISA IVT-S shunt || '''500 kbps''' ¹ ||
+|-
+| SimpBMS / Orion BMS || 500 kbps ||
+|-
+| BMW i3 LIM || 500 kbps ||
+|-
+| CHAdeMO socket || 33.3 kbps fault-tolerant || CAN3 only — 6 PCB solder jumpers required
+|-
+| OBD2 / ELM327 || 500 kbps ||
+|}
+
+¹ '''Applies to IVT-S units flashed with the ZombieVerter-specific firmware.''' Stock IVT-S units from ISA default to 1 Mbps and will not communicate with the VCU without reflashing. The ZV firmware flash is available from the openinverter.org community. A correctly flashed unit can share CAN1 or CAN2 with other 500 kbps devices. See '''W08''' for full IVT-S reference.
+
+== Bus Assignment Parameters ==
+
+Each device class has a parameter to select which physical bus it is on:
+
+{| class="wikitable"
+! Parameter !! Assigns !! Default
+|-
+| <code>InverterCan</code> || Traction inverter || CAN1
+|-
+| <code>VehicleCan</code> || Vehicle CAN (instrument cluster) || CAN2
+|-
+| <code>ShuntCan</code> || ISA shunt / S-BOX / VAG box || CAN1
+|-
+| <code>LimCan</code> || i3 LIM charge interface || CAN1
+|-
+| <code>ChargerCan</code> || OBC / charger || CAN2
+|-
+| <code>BMSCan</code> || Cell BMS || CAN2
+|-
+| <code>OBD2Can</code> || OBD2 interface || CAN1
+|-
+| <code>CanMapCan</code> || Custom CAN map messages || CAN1
+|-
+| <code>DCDCCan</code> || DC-DC converter || CAN2
+|-
+| <code>HeaterCan</code> || CAN-controlled heater || CAN2
+|}
+
+All are configurable — the defaults shown are firmware defaults from <code>param_prj.h</code> and may not match your wiring. Set each parameter to match where you physically wired the device.
+
+== Typical Bus Layout ==
+
+A common starting configuration:
+
+ CAN1 @ 500 kbps:
+   Traction inverter  (InverterCan = CAN1)
+   Leaf PDM charger   (ChargerCan = CAN1 — same bus as Leaf inverter)
+   BMW i3 LIM         (LimCan = CAN1)
+   OBD2 dongle        (OBD2Can = CAN1)
+ 
+ CAN2 @ 500 kbps:
+   ISA IVT-S shunt    (ShuntCan = CAN2) — ZV flash, 500 kbps
+   SimpBMS / Orion    (BMSCan = CAN2)
+   ESP32 CAN bridge   — shares bus, 500 kbps transceiver
+ 
+ CAN3 @ 33.3 kbps fault-tolerant:
+   CHAdeMO socket     — requires 6 PCB solder jumpers
+
+This is a recommendation, not a requirement. Any device can go on either CAN1 or CAN2 as long as all devices on the same bus run at 500 kbps and there are no CAN ID conflicts.
+
+== Physical Wiring Rules ==
+
+=== Use Twisted Pair ===
+
+All CAN runs must use twisted pair wire. CAN H and CAN L must be twisted together. Untwisted runs near HV cables or inverters cause intermittent failures that are very difficult to diagnose.
+
+Use shielded twisted pair for any run longer than ~500mm or close to HV wiring.
+
+=== Bus Topology — Not Star ===
+
+CAN is a '''bus''' topology. All devices connect to the same two wires running from one end to the other. Avoid star topologies where wires branch from a central point. Keep stub branches (drops from the main bus to a device) under 100mm.
+
+=== Termination ===
+
+CAN bus requires '''120Ω termination at each end of the bus''' — two resistors total. Measure across CAN H and CAN L with all devices powered off. You should read '''~60Ω''' (two 120Ω in parallel).
+
+* Less than 60Ω: too many terminators
+* More than 60Ω (or open): missing a terminator
+
+Some inverters and OBCs have built-in 120Ω termination — check before adding external resistors.
+
+== Diagnosing CAN Communication Failures ==
+
+Work through in order:
+
+# Is the correct bus assignment parameter set? Check <code>InverterCan</code>, <code>ShuntCan</code>, etc.
+# Is baud rate consistent? All devices on CAN1/CAN2 must be 500 kbps.
+# Is termination correct? Measure ~60Ω across H/L with power off.
+# Try swapping the <code>*Can</code> parameter between 0 (CAN1) and 1 (CAN2) — CAN1/CAN2 label swap issue.
+# Are CAN H and CAN L wires the right way around? Try swapping them.
+# Is the cable twisted pair?
+# Does the device need initialisation? (ISA shunt requires <code>IsaInit</code> — see W08)
+
+== Related Modules ==
+
+* '''W08''' — ISA IVT-S Shunt: Complete Reference
+* '''C02''' — Web Interface Walkthrough
+* '''C03''' — Essential Parameters: First Start
+* '''A03''' — BMS Integration
+
+----
+
+''Source: ZombieVerter firmware stm32_vcu.cpp, param_prj.h · openinverter.org/wiki''<br>
+''Last verified against firmware: V2.40A''

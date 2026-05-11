@@ -1,272 +1,228 @@
 = C03 — Essential Parameters: First Start =
 
-'''Track:''' Firmware & Configuration  
-'''Prerequisites:''' C02 — Web Interface Walkthrough, W02, W03  
-'''Audience:''' All levels  
+'''Track:''' Firmware & Configuration<br>
+'''Prerequisites:''' C02 — Web Interface Walkthrough, W02, W03<br>
+'''Audience:''' All levels<br>
 '''Estimated reading time:''' 15 minutes
-
-----
 
 == Overview ==
 
 This module walks you through the minimum parameter set required to bring a ZombieVerter system to life for the first time. Follow these steps in order. Do not skip ahead to HV testing until the LV checks are complete.
 
-----
-
 == Before You Start: LV Bench Test ==
 
-You should be able to complete the entire first-start sequence with '''12V only''' — no HV battery connected. This lets you verify wiring, parameters, and sequencing logic before introducing any HV risk.
+You should be able to complete the entire first-start sequence with '''12V only''' — no HV battery connected.
 
 Required for LV bench test:
 * ZombieVerter VCU with 12V power
 * Wi-Fi connected device with web interface open
 * Throttle pedal (or a potentiometer simulating one)
-* Brake signal (a simple switch to 12V)
+* Brake signal (simple switch to 12V)
 * Forward/Reverse signal (switches to 12V)
 * Ignition ON and START signals (switches to 12V)
-* Contactor coils connected (they will click — no HV needed to verify sequencing)
-* ISA shunt connected and initialised (see Module W03)
-
-----
+* Contactor coils connected (they will click — no HV needed)
+* ISA shunt connected and initialised (see Module W08)
 
 == Step 1: Set the Inverter Type ==
 
-'''Parameter:''' <code>inverter</code> (under Comms)
-
-Set this to match your actual inverter. If you set it wrong, the VCU will send CAN messages on the wrong IDs at the wrong baud rate and nothing will communicate.
+'''Parameter:''' <code>Inverter</code> (under General Setup)
 
 {| class="wikitable"
+! Your inverter !! Set <code>Inverter</code> to
 |-
-! Your inverter || ! Set inverter to
+| Nissan Leaf (any gen) || 1
 |-
-| Nissan Leaf (any gen) || | 1
+| Lexus GS450h || 2
 |-
-| Lexus GS450h || | 2
+| Toyota Prius Gen3 || 5
 |-
-| Toyota Prius Gen3 || | 5
+| Mitsubishi Outlander (rear) || 8
 |-
-| Mitsubishi Outlander (rear) || | 8
+| OpenInverter board || 4
 |-
-| OpenInverter board || | 4
-|-
-| Nothing yet || | 0
+| Nothing yet || 0
 |}
 
 Save to flash.
 
-----
-
 == Step 2: Set the Shunt Type ==
 
-'''Parameter:''' <code>shuntType</code> (under Contactors or Comms — varies by firmware version)
+'''Parameter:''' <code>ShuntType</code> (under General Setup)
 
 {| class="wikitable"
+! Your UDC source !! Set <code>ShuntType</code> to
 |-
-! Your UDC source || ! Set shuntType to
+| ISA IVT-S shunt || ISA
 |-
-| ISA IVT shunt || | ISA
+| BMW S-BOX || SBOX
 |-
-| BMW S-BOX || | SBOX
+| VW/Audi system || VAG
 |-
-| VW/Audi system || | VAG
+| Nissan Leaf inverter || LEAF
 |-
-| Nissan Leaf inverter || | LEAF
+| None || None
 |}
 
 Save to flash.
 
 === ISA Shunt Initialisation Procedure ===
 
-If you are using an ISA shunt it must be initialised before it will report UDC. The VCU cannot precharge without a valid UDC reading.
+{{Warning|The ISA shunt and VCU must share the same permanent 12V feed — required for the init sequence and for accurate readings when ignition is off.}}
 
-: '''The ISA shunt and VCU must share the same permanent 12V feed''' — this is required for the init sequence to work and for accurate readings during charging when the car is at rest.
-
-# Wire the ISA shunt to 12V+ and the CAN bus
-# Set <code>shuntType</code> = ISA and <code>shuntCan</code> to the correct CAN bus — save to flash
-# Set <code>IsaInit</code> = 1 — save to flash
-# Power cycle the VCU and shunt '''at the same time''' (they share the same 12V feed)
-# The shunt will initialise — <code>udc</code> in Spot Values should now show a reading
-# Set <code>IsaInit</code> = 0 — save to flash
+# Wire the ISA shunt to permanent 12V+ and the CAN bus
+# Set <code>ShuntType = ISA</code> and <code>ShuntCan</code> to the correct CAN bus — save to flash
+# Set <code>IsaInit = 1</code> — save to flash
+# Power cycle the VCU and shunt '''at the same time''' (shared 12V feed makes this automatic)
+# Verify <code>udc</code> in Spot Values shows a reading
+# '''Set <code>IsaInit = 0</code> — save to flash'''
 # Reboot the VCU
 
-: '''If the shunt doesn't initialise:''' Separate the shunt and VCU power supplies temporarily, power cycle the shunt, then power the VCU 2–3 seconds later. This fixes an init timing issue seen with some units.
+{{Warning|<code>IsaInit</code> is not cleared automatically by the firmware. Leaving it at 1 re-runs the full init sequence — including coulomb counter reset — on every boot. Always set it back to 0 after a successful init.}}
 
-----
+{{Note|If the shunt doesn't initialise: power the shunt 2–3 seconds before the VCU. This fixes a timing issue seen with some units.}}
+
+For the complete IVT-S reference see '''W08'''.
 
 == Step 3: Set the CAN Bus Assignments ==
 
-'''Parameters:''' <code>inverterCan</code>, <code>shuntCan</code> (under Comms)
+'''Parameters:''' <code>InverterCan</code>, <code>ShuntCan</code> (under General Setup)
 
-The ZombieVerter has three CAN interfaces (CAN1, CAN2, CAN3). You need to tell the VCU which physical bus each device is connected to.
-
-: '''Note:''' There is a known documentation issue where CAN1 and CAN2 are labelled in reverse in some older wiring diagrams. If you find your inverter is not communicating despite correct CAN wiring, try swapping the CAN bus assignment.
+{{Note|Known documentation issue: CAN1 and CAN2 are labelled in reverse in some older wiring diagrams. If your inverter is not communicating despite correct wiring, try swapping the bus assignment parameter value before rewiring.}}
 
 Common starting configuration:
-* <code>inverterCan</code> = CAN1 (or whichever bus your inverter is on)
-* <code>shuntCan</code> = same bus as the shunt wiring
+* <code>InverterCan</code> = CAN1 (or whichever bus your inverter is on)
+* <code>ShuntCan</code> = match your shunt wiring (CAN1 or CAN2)
 
 Save to flash.
-
-----
 
 == Step 4: Set Voltage Limits ==
 
 '''Parameters:''' <code>udcmin</code>, <code>udclim</code>, <code>udcsw</code>
 
 {| class="wikitable"
+! Parameter !! Firmware default !! What to set
 |-
-! Parameter || ! Description || ! Bench test value || ! Real vehicle value
+| <code>udcmin</code> || '''450V''' || ~80% of minimum pack voltage
 |-
-| `udcmin` || | Minimum voltage — below this, VCU will not enter run || | **450V** (firmware default) || | Set to ~80% of minimum pack voltage — **must lower for most builds**
+| <code>udclim</code> || '''520V''' || Just above fully charged pack voltage
 |-
-| `udclim` || | Maximum voltage — above this, VCU derates || | **520V** (firmware default) || | Set just above your fully charged pack voltage
-|-
-| `udcsw` || | Voltage at which precharge is complete and main contactor closes || | 15V (for bench with no HV) || | ~95% of nominal pack voltage
+| <code>udcsw</code> || '''330V''' || ~95% of nominal pack voltage
 |}
 
-For initial LV bench testing with no HV connected, set <code>udcsw</code> to a low value (15–20V) so precharge "completes" quickly and lets you verify the sequence.
+{{Warning|<code>udcmin</code> defaults to 450V and <code>udclim</code> to 520V. Both must be lowered for any sub-400V build or the VCU will never enter run mode.}}
+
+For LV bench testing with no HV, set <code>udcsw</code> to 15–20V so precharge completes immediately.
+
+{{Note|Precharge timeout is 5 seconds — hardcoded in firmware, not configurable. If <code>udc</code> does not reach <code>udcsw</code> within 5 seconds, the VCU posts <code>ERR_PRECHARGE</code> and enters <code>MOD_PCHFAIL</code>.}}
 
 Save to flash.
 
-----
-
-== Step 5: Configure Throttle (Minimum Settings) ==
+== Step 5: Configure Throttle ==
 
 '''Parameters:''' <code>potmin</code>, <code>potmax</code>, <code>potmode</code>, <code>throtmin</code>, <code>throtmax</code>
 
-First, set <code>potmode</code>:
-* <code>single</code> — one throttle pot
-* <code>dual</code> — two throttle pots (recommended)
+Set <code>potmode</code> first:
+* <code>SingleChannel</code> — one throttle pot
+* <code>DualChannel</code> — two throttle pots (recommended)
 
-Then watch the <code>pot</code> spot value while moving the throttle pedal and set:
-* <code>potmin</code> = value just '''above''' the resting (off-throttle) ADC reading
-* <code>potmax</code> = value just '''below''' the full-travel ADC reading
+Watch the <code>pot</code> spot value while moving the throttle and set:
+* <code>potmin</code> = just '''above''' the resting ADC reading
+* <code>potmax</code> = just '''below''' the full-travel ADC reading
 
-Then set:
-* <code>throtmin</code> = 0 (or a small negative value if you want throttle-lift regen)
-* <code>throtmax</code> = 100
+{{Warning|ZombieVerter <code>potmin</code>/<code>potmax</code> are set '''inside''' the mechanical travel range — opposite to most systems. This ensures a sensor failure or disconnected connector causes safe throttle cutoff.}}
 
-: '''<code>throtmax</code> defaults to 0.''' This is the single most common cause of "throttle does nothing." Set it to 100 before testing.
+Then set <code>throtmin = 0</code> and <code>throtmax = 100</code>.
 
-If using dual throttle, also calibrate <code>pot2min</code> and <code>pot2max</code> the same way while watching <code>pot2</code>.
+{{Warning|<code>throtmax</code> defaults to 100. If your throttle does nothing, verify this parameter — it is the most common first-start issue.}}
 
 Save to flash.
 
-----
-
 == Step 6: Verify Brake Signal ==
 
-In Spot Values, check <code>din_brake</code>.
+Check <code>din_brake</code> in Spot Values:
+* Should show '''off''' with brake not pressed
+* Should show '''on''' with brake pressed
 
-* It should show '''"off"''' when the brake pedal is not pressed
-* It should show '''"on"''' when the brake pedal is pressed
-
-<code>din_brake</code> must be '''"off"''' for the VCU to allow torque output. If it is stuck "on" with no brake pressed, check:
-* Brake switch wiring (is it normally open or normally closed?)
-* Is the brake pin floating? Add a pull-down resistor to ground
-* Is something else connected to Pin 49 at 12V?
-
-----
+{{Warning|<code>din_brake</code> must be "off" for the VCU to allow torque output. If stuck "on" with no brake pressed, check switch wiring (NO vs NC), floating pin, or add pull-down resistor.}}
 
 == Step 7: Verify Direction Inputs ==
 
-Apply 12V to Pin 54 (forward) and check <code>din_forward</code> in Spot Values — should show "on".
-Apply 12V to Pin 53 (reverse) and check <code>din_reverse</code> — should show "on".
-
-----
+Apply 12V to Pin 54 (forward) — <code>din_forward</code> should show "on".<br>
+Apply 12V to Pin 53 (reverse) — <code>din_reverse</code> should show "on".
 
 == Step 8: First Precharge Test (LV Only) ==
 
-With everything configured and saved to flash:
+# Apply ignition ON to Pin 15
+# Briefly apply START to Pin 52 (momentary pulse)
+# Watch Spot Values — contactors should click in sequence, <code>opmode</code> should reach <code>run</code>
 
-# Apply ignition ON signal to Pin 15 (pull to 12V)
-# Briefly apply START signal to Pin 52 (momentary 12V pulse)
-# Watch Spot Values:
-   - <code>udc</code> should update (even if reading 0V with no HV)
-   - Contactor outputs should fire (you'll hear the contactors click in sequence)
-   - If <code>udc</code> rises above <code>udcsw</code>, the main contactor should close
-   - <code>opmode</code> should eventually show <code>run</code>
-   - <code>invstat</code> should show <code>on</code>
-
-'''If the system stays in PRECHARGE:'''
-* Was the START signal held long enough? It should be a short pulse, like turning a key — but it must be long enough for the VCU to register it (at least 500ms)
-* Is <code>udc</code> reading a valid value? If it reads 0, the shunt is not communicating
-* Is <code>udcsw</code> reachable? For LV bench testing, lower <code>udcsw</code> to 5V if needed
+'''If stuck in PRECHARGE:'''
+* Is <code>udc</code> reading a value? If zero, shunt not communicating — see W08
+* Is <code>udcsw</code> reachable? Lower to 5V for LV bench test
+* Timeout is 5 seconds — if exceeded, VCU enters <code>MOD_PCHFAIL</code>
 
 '''If <code>opmode</code> never reaches "run":'''
 * Check <code>din_brake</code> is "off"
-* Check <code>din_forward</code> or <code>din_reverse</code> is "on" (VCU needs a direction selected)
+* Check <code>din_forward</code> or <code>din_reverse</code> is "on"
 * Check <code>udc</code> is above <code>udcmin</code>
 
-----
+== Step 9: First Torque Test (LV Only) ==
 
-== Step 9: First Torque Test (LV Only — No Motor Movement Expected) ==
-
-With <code>opmode</code> showing <code>run</code>:
-
+With <code>opmode = run</code>:
 # Apply forward direction (Pin 54 to 12V)
-# Slowly apply throttle
-# Watch <code>potnom</code> — it should rise from 0 to 100 as you press the pedal
-# Watch <code>torque</code> — it should rise proportionally
-
-Even without HV or a connected inverter, the VCU should be sending torque commands via CAN. You can verify this with a CAN analyser if available.
-
-----
+# Slowly press throttle
+# Watch <code>potnom</code> rise 0→100 and <code>torque</code> rise proportionally
 
 == Complete First-Start Parameter Checklist ==
 
 {| class="wikitable"
+! Parameter !! Firmware default !! What to set !! Notes
 |-
-! Parameter || ! Set to || ! Notes
+| <code>Inverter</code> || 0 || Match your hardware || General Setup
 |-
-| `inverter` || | Match your hardware || | Comms section
+| <code>ShuntType</code> || None || Match your hardware ||
 |-
-| `shuntType` || | Match your hardware || | ISA, SBOX, VAG, or LEAF
+| <code>InverterCan</code> || CAN1 || Match your wiring ||
 |-
-| `inverterCan` || | CAN bus your inverter is on || | 
+| <code>ShuntCan</code> || CAN1 || Match your wiring ||
 |-
-| `shuntCan` || | CAN bus your shunt is on || | 
+| <code>udcmin</code> || '''450V''' || ~80% of min pack voltage || ⚠ Must lower for all sub-400V builds
 |-
-| `udcmin` || | **450V** firmware default — lower to ~80% of min pack V || | ⚠️ Default too high for most builds
+| <code>udclim</code> || '''520V''' || Just above fully charged pack voltage ||
 |-
-| `udclim` || | **520V** firmware default — set just above fully charged pack V || | 
+| <code>udcsw</code> || '''330V''' || ~95% nominal / 15–20V for LV bench ||
 |-
-| `udcsw` || | 15V (bench) / ~95% nominal pack V || | 
+| <code>potmode</code> || SingleChannel || Match wiring ||
 |-
-| `potmode` || | single or dual || | Match wiring
+| <code>potmin</code> || 0 || Just above off-throttle ADC || Inside mechanical travel
 |-
-| `potmin` || | Just above off-throttle ADC reading || | 
+| <code>potmax</code> || 4095 || Just below WOT ADC || Inside mechanical travel
 |-
-| `potmax` || | Just below WOT ADC reading || | 
+| <code>pot2min</code> || 4095 || Same for channel 2 (dual only) ||
 |-
-| `pot2min` || | Same for channel 2 (dual only) || | 
+| <code>pot2max</code> || 4095 || Same for channel 2 (dual only) ||
 |-
-| `pot2max` || | Same for channel 2 (dual only) || | 
+| <code>throtmin</code> || -100 || 0 ||
 |-
-| `throtmin` || | 0 || | 
+| <code>throtmax</code> || '''100''' || 100 || Verify if throttle unresponsive
 |-
-| `throtmax` || | **100** || | Default is 0 — most common gotcha
+| <code>throtmaxRev</code> || 30 || Raise if more reverse torque needed ||
 |-
-| `throtmaxRev` || | 30 || | Firmware default limits reverse to 30% torque — raise if needed
+| <code>revlim</code> || 6000 rpm || Set for your motor ||
 |-
-| `revlim` || | 6000 rpm || | Firmware default — set appropriate for your motor
+| <code>IsaInit</code> || 0 || Toggle 1→0 to init ISA shunt || Must reset to 0 after init — see W08
 |-
-| `FanTemp` || | 40°C || | Cooling fan output activates above this heatsink temp
-|-
-| `IsaInit` || | toggle 0→1 || | Toggle to trigger ISA shunt initialisation sequence
-|-
-| `vehicle` || | None or Classic || | Unless integrating with OEM cluster
+| <code>Vehicle</code> || BMW_E46 || None or Classic || Unless integrating with OEM cluster
 |}
-
-----
 
 == What's Next ==
 
-* '''C04''' — Throttle Calibration: fine-tuning potmin/potmax, ramp rates, dual-pot plausibility
-* '''C05''' — CAN Configuration: inverter CAN profiles, baud rates, message IDs
-* '''C06''' — Fault Codes & Status Flags: reading and interpreting faults
+* '''C04''' — Throttle Calibration
+* '''C05''' — CAN Configuration
+* '''C06''' — Fault Codes & Status Flags
+* '''W08''' — ISA IVT-S Shunt: Complete Reference
 
 ----
 
-''Source: openinverter.org/wiki/ZombieVerter_VCU | openinverter.org forum threads''  
-''Last verified against firmware: V2.30A (August 2025)''
+''Source: openinverter.org/wiki · ZombieVerter firmware param_prj.h, stm32_vcu.cpp''<br>
+''Last verified against firmware: V2.40A''
