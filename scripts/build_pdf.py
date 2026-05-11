@@ -72,6 +72,8 @@ MODULES = [
     ('W04', 'Wiring',        'HVIL High Voltage Interlock Loop',        'wiring/W04-hvil-high-voltage-interlock-loop.md'),
     ('W05', 'Wiring',        'Cooling System Control',                  'wiring/W05-cooling-system-control.md'),
     ('W06', 'Wiring',        '12V Auxiliary and Ignition Wiring',       'wiring/W06-12v-auxiliary-and-ignition-wiring.md'),
+    ('W07', 'Wiring',        'CAN Bus Wiring',                           'wiring/W07-can-bus-wiring.md'),
+    ('W08', 'Wiring',        'ISA IVT-S Shunt: Complete Reference',      'wiring/W08-ivt-s-shunt-reference.md'),
     ('C00', 'Configuration', 'Firmware Version History',                'configuration/C00-firmware-version-history.md'),
     ('C01', 'Configuration', 'Flashing Firmware',                       'configuration/C01-flashing-firmware.md'),
     ('C02', 'Configuration', 'Web Interface Walkthrough',               'configuration/C02-web-interface-walkthrough.md'),
@@ -292,6 +294,9 @@ def module_header(story, track, code, title, styles):
         textColor=colors.white, borderPad=4, leading=12, alignment=TA_CENTER)
     story.append(PageBreak())
     story.append(Spacer(1, 4*mm))
+    # Named anchor for TOC hyperlinks
+    anchor = 'mod_' + code.replace('-', '_')
+    story.append(Paragraph('<a name="' + anchor + '"/>', styles['normal']))
     story.append(Paragraph('TRACK ' + track.upper() + ' - MODULE ' + code, badge))
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(strip_inline(title), styles['module_title']))
@@ -512,7 +517,7 @@ def build_cover(story, styles):
         'Complete reference guide for DIY EV conversion builders',
         styles['cover_meta']))
     story.append(Paragraph(
-        str(len(MODULES)) + ' modules - 6 tracks - Firmware V2.30A (August 2025)',
+        str(len(MODULES)) + ' modules - 6 tracks - Firmware V2.40A (August 2025)',
         styles['cover_meta']))
     story.append(Spacer(1, 5*mm))
     story.append(Paragraph('github.com/robertwa1974/zombieverter-training',
@@ -523,7 +528,7 @@ def build_cover(story, styles):
         ['Track', 'Name', 'Modules'],
         ['F', 'Foundation',    'F01-F04'],
         ['H', 'Hardware',      'H01'],
-        ['W', 'Wiring',        'W01-W06'],
+        ['W', 'Wiring',        'W01-W08'],
         ['C', 'Configuration', 'C00-C06'],
         ['I', 'Integration',   'I01-I04'],
         ['A', 'Advanced',      'A01-A06'],
@@ -540,7 +545,13 @@ def build_toc(story, styles):
         if track != current_track:
             story.append(Paragraph(track.upper(), styles['toc_track']))
             current_track = track
-        story.append(Paragraph(code + ' - ' + strip_inline(title), styles['toc_item']))
+        anchor = 'mod_' + code.replace('-', '_')
+        link_text = (
+            '<a href="#' + anchor + '" color="#00a0ff">'
+            + code + ' - ' + strip_inline(title)
+            + '</a>'
+        )
+        story.append(Paragraph(link_text, styles['toc_item']))
 
 
 # ══════════════════════════════════════════════════════════════
@@ -551,7 +562,7 @@ def on_page(canvas, doc):
     canvas.setFont('Body', 7)
     canvas.setFillColor(colors.HexColor('#888888'))
     canvas.drawString(MARGIN, 12*mm,
-        'github.com/robertwa1974/zombieverter-training - openinverter.org - V2.30A')
+        'github.com/robertwa1974/zombieverter-training - openinverter.org - V2.40A')
     canvas.drawRightString(PAGE_W - MARGIN, 12*mm, str(doc.page))
     canvas.setStrokeColor(colors.HexColor('#dddddd'))
     canvas.line(MARGIN, 14*mm, PAGE_W - MARGIN, 14*mm)
