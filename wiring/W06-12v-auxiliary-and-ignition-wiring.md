@@ -146,9 +146,7 @@ Direction goes to Neutral when opmode goes to Off. When you next start the vehic
 
 ### Torque Direction
 
-Forward sends positive torque commands to the inverter. Reverse sends negative torque commands — the motor spins in the opposite direction. There is no physical reverse gear in most EV transaxles (Prius, Outlander, Leaf) — reverse is achieved by commanding negative torque.
-
-**Exception:** The Lexus GS450h transmission does have a reverse gear and uses a physical gear selector with linkage. This is handled differently — see Module I03.
+Forward sends positive torque commands to the inverter. Reverse sends negative torque commands — the motor spins in the opposite direction. There is no physical reverse gear in any of the supported EV transaxles (Prius, GS450h, Outlander, Leaf) — reverse is achieved entirely by commanding negative torque. The GS450h does use a physical gear selector, but this is a switch only — it tells the VCU which direction to command, it does not engage a physical reverse gear in the transmission. See Module I03 for GS450h shifter wiring detail.
 
 **Swapping forward/reverse direction:** If your motor spins the wrong way for a given direction signal (common when reorienting a drive unit from its OEM position), use `switchReversed` or `buttonReversed` in `dirmode` to invert the direction without rewiring.
 
