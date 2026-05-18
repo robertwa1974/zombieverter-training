@@ -74,16 +74,48 @@ Every HV conductor must be protected by a fuse rated for the maximum fault curre
 
 ---
 
-## HVIL — High Voltage Interlock Loop
+## HV Isolation vs HVIL — Two Different Concepts
 
-HVIL is a low-current 12V loop that passes through every HV connector, service plug, and access panel in the system. If any connector is opened or any panel is removed, the loop opens, the VCU detects the break and immediately opens the contactors.
+This section introduces two distinct safety concepts that are frequently confused. They are not the same thing.
 
-This means:
-- Unplugging an HV cable without discharging first triggers a contactor open, not electrocution
-- Removing a battery lid triggers a contactor open
-- A failed HV connector triggers a contactor open
+### HV Isolation
 
-HVIL does not replace the discharge procedure — contactors are mechanical devices and can fail. But it dramatically reduces the probability of accidental energisation during service.
+**What it is:** A fundamental design property of the entire HV system.
+
+The HV bus (battery positive and negative) must be **electrically floating** — isolated from the vehicle chassis (LV ground). Neither HV+ nor HV− should have a low-resistance path to chassis.
+
+**Why it matters:** If HV+ or HV− contacts the chassis, the chassis becomes energised at HV potential. Anyone touching the vehicle while also contacting ground completes a circuit through their body.
+
+**How it's maintained:**
+- Battery terminals are never directly connected to chassis
+- Inverter and charger HV ports are internally isolated by design
+- The ISA shunt measures HV differentially — neither terminal is referenced to chassis ground
+
+**What breaks it:** A chafed HV cable touching a body panel, a failed component creating an HV-to-chassis path, or incorrect wiring (e.g. connecting HV− to chassis as a "ground" — never correct).
+
+**This is a design property, not a circuit you wire.**
+
+### HVIL — High Voltage Interlock Loop
+
+**What it is:** A low-current 12V detection circuit that monitors connector integrity.
+
+A simple series loop of 12V passes through every HV connector, service disconnect, and access panel in the system. When all connectors are fully mated, the loop is complete. When any connector is pulled, the loop opens and the VCU immediately opens the HV contactors.
+
+**What it does:** Detects physical connector disconnection and triggers a contactor open. It does **not** detect isolation faults (HV contacting chassis).
+
+**This is an active 12V circuit you physically wire.** See Module W04.
+
+### Summary
+
+| | HV Isolation | HVIL |
+|---|---|---|
+| What it is | A system design property | A 12V detection circuit |
+| What it detects | Ground faults — HV touching chassis | Connector disconnection |
+| How it works | Floating HV bus design | Series 12V loop through all HV connectors |
+| What happens on failure | HV chassis energisation — silent danger | VCU opens contactors immediately |
+| Do you wire it? | No — it's a design requirement | Yes — see Module W04 |
+
+> **Neither HVIL nor HV Isolation replaces the discharge procedure.** Contactors can weld closed. HVIL circuits can fail. Isolation can be compromised. The only safe assumption before touching any HV component is that the system is live until you have personally measured otherwise.
 
 The BMW Safety Box (S-BOX) integrates HVIL with pack-level CAN monitoring in one unit. See Module W04 for HVIL wiring.
 

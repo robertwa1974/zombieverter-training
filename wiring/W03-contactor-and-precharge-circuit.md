@@ -3,7 +3,7 @@
 **Track:** Wiring  
 **Prerequisites:** H01 — VCU Hardware Walkthrough, F03 — EV Drivetrain Fundamentals  
 **Audience:** All levels  
-**Estimated reading time:** 15 minutes
+**Estimated reading time:** 18 minutes
 
 ---
 
@@ -34,25 +34,33 @@ The sequencing logic is:
 START signal received
         │
         ▼
-Negative contactor CLOSES  ◄─── always first
+Negative contactor CLOSES      ◄─── always first, immediate on MOD_PRECHARGE entry
         │
         ▼
-Precharge contactor CLOSES ◄─── current limited by precharge resistor
+Inverter 12V enable fires      ◄─── inv_out SET (Pin 32 relay), inverter begins booting
+        │
+   [250ms stagger]
         │
         ▼
-UDC voltage rises toward pack voltage
+Precharge contactor CLOSES     ◄─── current limited by precharge resistor
+        │                           HV bus begins rising
+        ▼
+1 second minimum precharge time enforced regardless of UDC
         │
         ▼
-UDC ≥ udcsw setpoint? ──── NO ──── wait (up to 5 seconds)
-        │                                │
-       YES                        PRECHARGE FAULT
+UDC ≥ udcsw AND UDC < udclim AND throttle released?
+        │
+       YES ──── [250ms stagger] ──── Main (positive) contactor CLOSES
         │
         ▼
-Main (positive) contactor CLOSES
+VCU enters RUN mode  ──── opmode = "run"
         │
-        ▼
-VCU enters RUN mode  ──── opmode = "run", invstat = "on"
+       NO ──── wait (up to 5 seconds total from start)
+                    │
+              PRECHARGE FAULT ──── prec_out cleared, ERR_PRECHARGE posted
 ```
+
+> **Important:** The precharge contactor does **not** open when the main contactor closes. It remains energised throughout the entire drive session and is only de-energised when the VCU returns to `MOD_OFF`. This is the actual firmware behaviour — the precharge resistor runs in parallel with the main contactor during normal driving. See [Precharge Contactor Behaviour](#precharge-contactor-behaviour) below.
 
 ---
 
@@ -142,6 +150,23 @@ Battery +  ──── [Main Contactor] ─────────────
 
 ---
 
+## Precharge Contactor Behaviour
+
+> 🟡 **This differs from standard EV practice — read carefully.**
+
+In most EV systems the precharge contactor opens as soon as the main contactor closes, removing the resistor from the circuit. **The ZombieVerter firmware does not do this.**
+
+Looking at the state machine in `stm32_vcu.cpp`: `prec_out` is set during `MOD_PRECHARGE` and is never cleared on transition to `MOD_RUN` or during normal driving. The only places `prec_out` is explicitly cleared are:
+
+- `MOD_OFF` — after the shutdown `rlyDly` countdown completes
+- `MOD_PCHFAIL` — on a precharge timeout fault
+
+This means **the precharge contactor remains closed in parallel with the main contactor for the entire drive session.** The precharge resistor is in the circuit throughout normal operation. At typical drive currents flowing through the main contactor, the resistor carries negligible current (the main contactor provides the low-impedance path), so this has no practical effect on performance.
+
+The implication for hardware selection: your precharge contactor and resistor must be rated for sustained energisation, not just the brief precharge interval. Most standard precharge contactors are already rated for continuous coil energisation, but verify your specific part.
+
+---
+
 ## UDC Measurement Point — ISA Shunt
 
 The ISA shunt must be positioned to measure the voltage at the correct point. The shunt's U1 terminal reads voltage relative to HV ground.
@@ -151,6 +176,44 @@ The ISA shunt must be positioned to measure the voltage at the correct point. Th
 A common mistake is connecting U1 to the battery side of the main contactor. In this position, U1 reads full pack voltage immediately (before precharge even starts), and the VCU will try to close the main contactor without actually precharging the inverter capacitors — potentially welding the main contactor on first use.
 
 > **Check:** During initial power-up with no HV connected, U1 should read 0V. Apply HV with only precharge closed — U1 should rise slowly from 0V toward pack voltage. Only then will the VCU close the main contactor.
+
+---
+
+## Startup Timing Detail
+
+The firmware enforces deliberate stagger delays between each contactor event. Understanding these helps diagnose first-start timing issues.
+
+**Full contactor sequence with timing:**
+
+```
+MOD_PRECHARGE entry:
+  t=0ms      NEG contactor closes (immediate)
+  t=0ms      inv_out SET — inverter 12V enable fires (immediate)
+  t=250ms    PREC contactor closes (after 25-tick rlyDly)
+  t=250ms–1250ms  HV bus rising, 1-second minimum precharge enforced
+  t=≥1250ms  UDC check passes
+
+MOD_RUN entry:
+  t+0ms      rlyDly=25 begins
+  t+250ms    MAIN contactor closes (after 25-tick rlyDly)
+  t+250ms    Drive enabled
+
+MOD_OFF (shutdown):
+  t=0ms      rlyDly=250 begins (2.5-second grace period)
+  t=2500ms   All contactors open simultaneously
+```
+
+The **250ms gap between NEG and PREC** is intentional — it prevents multiple contactors pulling current simultaneously and gives the inverter time to begin its own boot sequence before HV arrives on the bus.
+
+The **2.5-second shutdown delay** (10× longer than the startup stagger) gives the inverter time to ramp torque down to zero and safely discharge gate drivers before contactors open.
+
+---
+
+## Inverter 12V Enable — Timing and Exceptions
+
+The VCU fires `inv_out` (Pin 32 relay) at the very start of `MOD_PRECHARGE`, **before** the precharge contactor closes. This is deliberate: the inverter needs time to boot its own firmware and establish CAN communication before the VCU expects to talk to it. The 250ms stagger before `prec_out` provides that window.
+
+**Exception — OpenInverter-based inverters:** When the selected inverter type is set to OpenInverter (`Inverter = OI`), `inv_out` is **not** fired during precharge. OpenInverter manages its own startup independently. If you are using an OI-based inverter and the enable relay is not firing, this is expected behaviour, not a fault.
 
 ---
 
@@ -174,6 +237,8 @@ These parameters control contactor and precharge behaviour:
 | Precharge times out (stays in PRECHARGE state) | `udcsw` set too high, precharge resistor too large, shunt not reporting correctly |
 | VCU never attempts precharge | `udcmin` set too high (pack voltage is below the minimum threshold) |
 | Precharge completes but VCU won't enter run mode | `din_break` is showing "on" — brake signal is active or stuck, blocking run mode |
+| Inverter enable relay not firing, OI inverter | Expected — `inv_out` is intentionally suppressed for OpenInverter type |
+| Fault code appears briefly then clears on entering run mode | Normal — `ErrorMessage::UnpostAll()` is called every 10ms cycle while in `MOD_RUN` |
 
 ---
 
@@ -203,7 +268,7 @@ One subtle but important wiring detail: the inverter (and charger, DCDC) should 
 - CAN bus conflicts before the VCU has configured the inverter
 - Inverter self-initialisation that conflicts with VCU sequencing
 
-The ZombieVerter controls an external relay (via Pin 32, low-side switching) to provide a switched 12V "ignition" signal to these devices. This relay should only fire after the VCU is in a valid state.
+The ZombieVerter controls an external relay (via Pin 32, low-side switching) to provide a switched 12V "ignition" signal to these devices. This relay fires at the start of `MOD_PRECHARGE`, giving the inverter a 250ms head-start before the precharge contactor closes and HV arrives on the bus.
 
 **Relay wiring:**
 ```
@@ -232,7 +297,7 @@ Before assuming a hardware fault, verify all of the following:
 - [ ] `udcmin` is set to a sane value (try 20V for bench testing)
 - [ ] `udcsw` is set below actual pack voltage
 - [ ] `din_break` reads "off" in spot values (brake signal not stuck on)
-- [ ] Inverter enable relay is firing during precharge (Pin 32)
+- [ ] Inverter enable relay is firing during precharge (Pin 32) — except OpenInverter type
 
 ---
 
@@ -244,5 +309,5 @@ Before assuming a hardware fault, verify all of the following:
 
 ---
 
-*Source: openinverter.org/wiki/ZombieVerter_VCU | openinverter.org forum threads*  
+*Source: openinverter.org/wiki/ZombieVerter_VCU | openinverter.org forum threads | stm32_vcu.cpp V2.40A-RW*  
 *Last verified against firmware: V2.30A (August 2025)*

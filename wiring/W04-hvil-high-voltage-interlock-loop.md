@@ -13,6 +13,11 @@ The High Voltage Interlock Loop (HVIL) is a low-current 12V detection circuit th
 
 HVIL transforms accidental HV contact from a likely fatal event into a contactor-open event. Instead of unplugging an HV cable while the system is live, you unplug the HVIL pin first (or simultaneously), the VCU sees the broken loop, and the HV bus drops before you can touch a live terminal.
 
+> **HVIL vs HV Isolation — not the same thing:**  
+> **HVIL** is a 12V circuit that detects connector disconnection and triggers a contactor open.  
+> **HV Isolation** is the design property that HV+ and HV− are electrically floating from chassis ground. A ground fault (HV touching chassis) is an isolation failure — HVIL cannot detect it.  
+> See Module F04 for the full explanation of both concepts.
+
 ---
 
 ## How It Works

@@ -11,24 +11,30 @@
 
 The ZombieVerter supports AC onboard charging, CHAdeMO DC fast charging, and CCS via the BMW i3 LIM or Foccci open-source controller. One VCU can manage any of these, and combinations are possible (e.g. Leaf PDM for AC plus CHAdeMO for fast charging in the same vehicle).
 
-### Supported Chargers
+---
 
-| Charger | AC Power | Notes |
-|---|---|---|
-| Nissan Leaf PDM Gen1 | 3.3 kW | Simplest setup — no CP/PP wiring to VCU |
-| Nissan Leaf PDM Gen2 | 6.6 kW | Recommended first build |
-| Nissan Leaf PDM Gen3 | 6.6 kW | 2018+ Leaf. Improved in V2.22A |
-| Mitsubishi Outlander OBC | 3.3 kW | AC + DC-DC. Two 12V feeds required. |
-| VW Golf PHEV OBC | 3.3 kW | VAG protocol. Two CAN buses. |
-| Audi e-tron OBC | 7.2–11 kW | Most popular VW option. |
-| MG ZS Gen1 OBC | 6.6 kW | VAG protocol. |
-| MG ZS Gen2 OBC | 6.6–11 kW | 3-phase capable. |
-| Tesla Gen2 charger | 10 kW | Requires open-source controller board. |
-| Tesla Gen3 charger | 18.5 kW | Requires Gen3 v2 controller board. |
-| Elcon | 1.5–6.6 kW | Universal J1772 charger. |
-| CHAdeMO | DC 50+ kW | Native VCU support. 6 PCB jumpers required. |
-| CCS (BMW i3 LIM) | DC fast | Salvaged from i3. Type 1 and 2. |
-| CCS (Foccci) | DC fast | Open-source controller. V2.20A one-click setup. |
+## Supported Chargers
+
+The **Community Experience** column reflects how well-documented and battle-tested each option is in real ZombieVerter builds as of V2.30A. Protocol support in firmware does not automatically mean easy integration — maturity varies significantly.
+
+| Charger | AC Power | Community Experience | Notes |
+|---|---|---|---|
+| Nissan Leaf PDM Gen1 | 3.3 kW | 🟢 Extensive | Simplest setup — no CP/PP wiring to VCU |
+| Nissan Leaf PDM Gen2 | 6.6 kW | 🟢 Extensive | **Recommended first build** |
+| Nissan Leaf PDM Gen3 | 6.6 kW | 🟢 Good | 2018+ Leaf. Improved in V2.22A |
+| Mitsubishi Outlander OBC | 3.3 kW | 🟢 Good | AC + DC-DC. Two 12V feeds required — most common failure point |
+| VW Golf PHEV OBC | 3.3 kW | 🟡 Limited | VAG protocol. Two CAN buses required. Few documented builds. |
+| Audi e-tron OBC | 7.2–11 kW | 🟡 Limited | Most capable VW option. Working but complex — community experience thinner than Leaf/Outlander. |
+| MG ZS Gen1 OBC | 6.6 kW | 🟡 Limited | VAG protocol — same two-CAN-bus requirement as VW |
+| MG ZS Gen2 OBC | 6.6–11 kW | 🟡 Limited | 3-phase capable. Protocol supported; limited real-world build reports as of V2.30A. |
+| Tesla Gen2 charger | 10 kW | 🟡 Moderate | Requires open-source controller board from evbmw.com |
+| Tesla Gen3 charger | 18.5 kW | 🟡 Moderate | Requires Gen3 v2 controller board |
+| Elcon | 1.5–6.6 kW | 🟡 Moderate | Universal J1772 charger |
+| CHAdeMO | DC 50+ kW | 🟢 Good | Native VCU support. 6 PCB jumpers required. |
+| CCS (BMW i3 LIM) | DC fast | 🟢 Good | Salvaged from i3. Type 1 and 2. |
+| CCS (Foccci) | DC fast | 🟢 Good | Open-source controller. V2.20A one-click setup. |
+
+> **🟡 VW and MG chargers:** The VAG protocol is implemented in firmware and has been demonstrated working. However, the two-CAN-bus requirement is a common integration stumbling block, and real-world documented builds using VW or MG OBCs are significantly fewer than Leaf or Outlander builds. Treat these as working-but-complex options that require more troubleshooting and community forum research. Do not assume the same level of step-by-step documentation exists as for Leaf PDM or Outlander.
 
 ---
 
@@ -70,8 +76,6 @@ The PP sense line requires a two-resistor voltage divider:
   - **Type 1 (J1772) connectors:** 2.7kΩ to ground
   - **Type 2 (IEC 62196) connectors:** 4.7kΩ to ground
   - Note: many charge ports already have this lower resistor installed — check before adding one
-
-The VCU analogue input reads the voltage at the midpoint of this divider. Different cable PP resistors change the midpoint voltage, allowing the VCU to detect both cable presence and current rating.
 
 **Setup:** Assign the `ProxPilot` function to an analogue input pin. Watch `PPVal` in Spot Values while plugging in a cable. Set `PPthreshold` just above the reading when the cable is fully inserted. Note that different cables (13A vs 32A) will give different `PPVal` readings — set your threshold for the lowest-rated cable you intend to use.
 
@@ -124,10 +128,10 @@ The simplest charging setup. The PDM combines the AC charger and DC-DC converter
 
 ```
 chargerType = LeafPDM
-chargePower = 1000   ← start at 1kW, ramp up
-chargePower = 3300   ← Gen1 max
-chargePower = 6600   ← Gen2/3 max
-chargePower = 0      ← stop charger
+chargePower = 1000   → start at 1kW, ramp up
+chargePower = 3300   → Gen1 max
+chargePower = 6600   → Gen2/3 max
+chargePower = 0      → stop charger
 ```
 
 > **DC-DC note:** The PDM's DC-DC activates in charge mode. Ensure permanent 12V on VCU — a 12V dropout reboots the VCU mid-session.
@@ -138,7 +142,7 @@ chargePower = 0      ← stop charger
 
 3.3 kW AC charger + DC-DC converter. Supported since V2.01A.
 
-> **🔴 Two 12V power inputs — both must be fed.** The Outlander OBC has two separate 12V connectors. Both must be powered. Wiring only one: `opmode` shows "charge" but `idc` = 0 and no current flows. This is the most common Outlander charging failure.
+> **⚠️ Two 12V power inputs — both must be fed.** The Outlander OBC has two separate 12V connectors. Both must be powered. Wiring only one: `opmode` shows "charge" but `idc` = 0 and no current flows. This is the most common Outlander charging failure.
 
 **CP/PP wiring required.** From V2.20A, use `CpSpoof` PWM output for CP. Wire PP with 330Ω pull-up to 5V.
 
@@ -150,11 +154,11 @@ V2.20A also added a required CAN heartbeat message — without it the OBC stops 
 
 All use VAG protocol — set `chargerType` = VAG.
 
-> **🔴 Two separate CAN buses required.** VW chargers use "Hybrid CAN" and "Powertrain CAN" internally. Both must connect to different VCU CAN ports. Wire only one bus and the charger ignores you.
+> **⚠️ Two separate CAN buses required.** VW chargers use "Hybrid CAN" and "Powertrain CAN" internally. Both must connect to different VCU CAN ports. Wire only one bus and the charger ignores you.
 
-**Audi e-tron OBC** (7.2–11 kW): Most popular VW option. The VCU sends startup CAN commands that disable OEM requirements for charge port lock feedback and LIN features — no OEM Audi charge port needed. Community credit: Mitch Elliott's reverse engineering.
+**Audi e-tron OBC** (7.2–11 kW): The VCU sends startup CAN commands that disable OEM requirements for charge port lock feedback and LIN features — no OEM Audi charge port needed. Community credit: Mitch Elliott's reverse engineering.
 
-**MG ZS Gen2** (11 kW): 3-phase capable. Also VAG protocol.
+**MG ZS Gen2** (11 kW): 3-phase capable. Also VAG protocol. Support is present in firmware but documented builds are limited — check the openinverter.org forum for current community experience before committing to this option.
 
 All VW/MG chargers need PP wiring (330Ω pull-up) and CpSpoof or physical CP circuit.
 
@@ -212,10 +216,10 @@ CHAdeMO does not need PP — handshake is fully CAN + 12V signal based.
 | Charger | Power | Complexity | CP/PP to VCU | Best for |
 |---|---|---|---|---|
 | Leaf PDM Gen2 | 6.6 kW | Low | Not needed | First build, Leaf stack |
-| Outlander OBC | 6.6 kW | Medium | PP + CpSpoof | Outlander builds |
-| VW Golf PHEV OBC | 3.3 kW | Medium | PP + CP | European builds, cheap |
-| Audi e-tron OBC | 7.2–11 kW | Medium | PP + CpSpoof | High-power AC |
-| MG ZS Gen2 OBC | 11 kW | Medium | PP + CpSpoof | 3-phase 11kW |
+| Outlander OBC | 3.3 kW | Medium | PP + CpSpoof | Outlander builds |
+| VW Golf PHEV OBC | 3.3 kW | High | PP + CP + dual CAN | European builds — expect integration effort |
+| Audi e-tron OBC | 7.2–11 kW | High | PP + CpSpoof + dual CAN | High-power AC — expect integration effort |
+| MG ZS Gen2 OBC | 11 kW | High | PP + CpSpoof + dual CAN | 3-phase 11kW — limited community reference |
 | Tesla Gen2 | 10 kW | High — controller board | Full charge port | High AC power |
 | Tesla Gen3 | 18.5 kW | High — controller board | Full charge port | Maximum AC speed |
 | CHAdeMO | DC 50+ kW | High — PCB jumpers + wiring | Not needed | Public fast charging |
@@ -224,5 +228,6 @@ CHAdeMO does not need PP — handshake is fully CAN + 12V signal based.
 
 ---
 
-*Source: Damien Maguire @Evbmw · Good Enuff Garage · openinverter.org*  
+*Source: Damien Maguire @Evbmw · Good Enuff Garage · openinverter.org · Mitch Elliott (Audi e-tron OBC reverse engineering)*  
+*Outlander OBC: V2.01A · Tesla Gen2 DCDC: V2.04A · Foccci one-click setup: V2.20A*  
 *Last verified against firmware: V2.30A (August 2025)*

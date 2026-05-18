@@ -7,6 +7,22 @@
 
 ---
 
+## Three Pumps — Three Different Jobs
+
+The VCU Dout section lists several pump-related output functions in the same place. Before wiring anything, understand that these control **completely different systems** with **different purposes**:
+
+| VCU Function | What it controls | Purpose |
+|---|---|---|
+| `CoolantPump` | Electric water/glycol pump | **Cools the inverter** |
+| `GS450Hpump` | GS450h transmission oil pump | **Enables traction** — not cooling |
+| `BrakeVacPump` | Electric vacuum pump | **Brake servo assistance** |
+
+> **⚠️ GS450h builders:** The GS450h oil pump **pressurises the transmission** to engage its internal clutch plates so the gearset can transmit torque to the wheels. It is **not a cooling pump** and has nothing to do with inverter cooling. The GS450h inverter uses a separate water/glycol coolant loop — that is what `CoolantPump` controls. Without oil pressure the transmission cannot transmit torque, regardless of inverter state. See Module I03-X for full oil pump wiring and commissioning.
+
+These three functions are independent. A build may need all three, some, or just one.
+
+---
+
 ## Why Cooling Matters More in a Conversion
 
 In an OEM EV, the cooling system is engineered alongside the drivetrain with precise flow rates, thermal mass, and thermostat control tuned for that specific motor and inverter. In a conversion, you are building a cooling system from scratch around salvaged components that were designed with different assumptions.
@@ -27,7 +43,7 @@ The VCU has dedicated output functions for cooling components, assignable via th
 | Function | What it controls | How it activates |
 |---|---|---|
 | `CoolantPump` | Electric coolant pump relay | On during pre-charge, charge and run mode |
-| `GS450Hpump` | GS450h oil pump PWM | PWM speed control via PumpPWM parameter |
+| `GS450Hpump` | GS450h transmission oil pump PWM | PWM speed control via PumpPWM parameter |
 | `CoolingFan` | Cooling fan relay or speed controller | Activates when temp exceeds FanTemp |
 | `BrakeVacPump` | Brake vacuum pump relay | Activates when brake vacuum is low |
 
@@ -37,7 +53,7 @@ The VCU has dedicated output functions for cooling components, assignable via th
 
 An electric coolant pump must run whenever the inverter is active — from precharge through to run mode shutdown. Assign `CoolantPump` to a low-side digital output pin.
 
-**Circuit:** 12V+ → relay coil+ → relay coil− → VCU Dout pin (low-side). When the VCU activates the output, the relay closes and supplies 12V to the pump motor.
+**Circuit:** 12V+ → relay coil → relay coil− → VCU Dout pin (low-side). When the VCU activates the output, the relay closes and supplies 12V to the pump motor.
 
 **Pump selection:** Match the pump to the inverter's cooling system requirements. Most donor inverters (Leaf, Tesla) are designed for water/glycol coolant with flow rates in the 2–8 L/min range. An automotive heater core pump (e.g. Davies Craig EWP series) is commonly used in conversions.
 
@@ -50,12 +66,27 @@ An electric coolant pump must run whenever the inverter is active — from prech
 `FanTemp` sets the inverter heatsink temperature (`temphs`) at which the VCU activates the cooling fan output.
 
 ```
-FanTemp = 40    ← fan on when heatsink reaches 40°C
+FanTemp = 40    → fan on when heatsink reaches 40°C
 ```
 
 Set this based on your cooling system design. A well-designed cooling loop should keep the inverter heatsink below 60°C under sustained load. If `temphs` regularly reaches 80°C+, the cooling system needs more capacity.
 
 **Monitoring:** Watch `temphs` and `tempm` in Spot Values during sustained driving. These are your primary thermal health indicators.
+
+---
+
+## GS450h Oil Pump — Traction, Not Cooling
+
+> **This is not a coolant pump.** It is documented here because it appears in the same Dout section of the web interface alongside cooling outputs.
+
+The GS450h transmission uses hydraulic oil pressure to engage its internal clutch plates. Without oil pressure, the transmission cannot transmit torque — the wheels will not turn regardless of inverter state. The pump must run from precharge throughout run mode.
+
+- Current draw: ~25A at full speed — **must** have its own dedicated 12V feed with a 30A minimum fuse
+- Do not power from a VCU output pin
+- Start at 30% PWM duty cycle
+- From V2.20A, the `PumpPWM` output function is freely assignable (not limited to GS450h builds)
+
+See **Module I03-X** for full GS450h oil pump wiring, specifications, and commissioning procedure.
 
 ---
 
@@ -69,6 +100,8 @@ The VCU can monitor a vacuum sensor and activate a vacuum pump as needed:
 3. The VCU activates the pump when vacuum drops below threshold
 
 Alternatively, use a standalone electric vacuum pump controller — these are available as off-the-shelf units that self-regulate without VCU integration.
+
+> **Fix note — V2.05A:** Before V2.05A, the brake vacuum pump output stayed active after ignition off. This was corrected in V2.05A (March 2024). If your pump runs continuously after key-off, update firmware.
 
 ---
 
@@ -110,5 +143,5 @@ Solution: more cooling. Larger radiator, higher flow pump, or additional cooling
 ---
 
 *Source: Damien Maguire @Evbmw — V2.20A firmware walkthrough (December 2024) · openinverter.org community builds*  
-*PumpPWM and FanTemp added V2.20A*  
+*PumpPWM and FanTemp added V2.20A · Vacuum pump fix: V2.05A (March 2024)*  
 *Last verified against firmware: V2.30A (August 2025)*

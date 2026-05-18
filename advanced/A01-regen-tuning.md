@@ -30,13 +30,25 @@ There are two distinct regen mechanisms:
 
 ---
 
+## Understanding throtmin vs regenmax
+
+These two parameters are frequently confused — they control different things:
+
+> **`throtmin`** is the **floor on `potnom` at all times** — the minimum normalised throttle demand the VCU will allow, even with your foot fully off the pedal. Setting it negative creates throttle-lift regen.
+>
+> **`regenmax`** is the **maximum regen torque level**, expressed as a `potnom` percentage, **scaled by motor RPM**. It caps how hard regen can bite at any given speed, tapering to zero at low RPM.
+
+In practice: `throtmin` is what you feel when you lift the throttle at speed. `regenmax` governs how that regen level is tapered away as the vehicle slows, preventing a stall jerk at low speed.
+
+---
+
 ## The Key Parameters
 
 ### Complete Regen Parameter Reference
 
 | Parameter | Default | Range | Description |
 |---|---|---|---|
-| `throtmin` | -100% | -100 to 0 | Minimum (most negative) potnom allowed at all times — sets throttle-lift regen level |
+| `throtmin` | 0% | -100 to 0 | **Floor on `potnom` at all times** — sets throttle-lift regen level. 0 = no regen (pure coast). |
 | `regenmax` | -10% | -35 to 0 | Maximum regen as a potnom percentage, scaled by motor RPM |
 | `regenrpm` | 1500 rpm | 100–10000 | RPM at which `regenmax` is fully applied. Below this, regen tapers to 0 at 100 rpm |
 | `regenendrpm` | 100 rpm | 100–10000 | Below this RPM, regen is zero — prevents regen stall |
@@ -51,8 +63,10 @@ There are two distinct regen mechanisms:
 |---|---|
 | 0 (default) | No regen on throttle lift — pure coast |
 | -5 | Light one-pedal style regen |
-| -20 | Moderate regen — noticeable engine-brake feel |
-| -50 | Strong regen — aggressive deceleration on throttle lift |
+| -10 | Noticeable engine-brake feel |
+| -20 | Moderate regen |
+| -30 | Strong regen — aggressive deceleration on throttle lift |
+| -50+ | Very strong — likely unnatural, unsettles passengers |
 
 Start conservative (e.g. -5) and increase gradually. Aggressive regen values feel unnatural and can be unsettling for passengers who aren't expecting strong deceleration on every throttle lift.
 
@@ -64,15 +78,15 @@ Start conservative (e.g. -5) and increase gradually. Aggressive regen values fee
 
 ### Brake pedal regen — regenBrake
 
-Separate from throttle-lift regen. Applies additional negative potnom when the brake pedal input (Pin 49) is active. Useful for stronger blended braking feel without making throttle-lift too aggressive. Default is -10% — same as `regenmax`.
+Separate from throttle-lift regen. Applies additional negative `potnom` when the brake pedal input (Pin 49) is active. Useful for stronger blended braking feel without making throttle-lift too aggressive. Default is -10% — same as `regenmax`.
 
 ### RegenBrakeLight
 
-Sets the potnom threshold below which the brake light output activates during regen. Default -15% means the brake lights come on when regen exceeds 15% — ensures following drivers see brake lights during meaningful deceleration, even with no mechanical braking.
+Sets the `potnom` threshold below which the brake light output activates during regen. Default -15% means the brake lights come on when regen exceeds 15% — ensures following drivers see brake lights during meaningful deceleration, even with no mechanical braking.
 
 ### brakelight output
 
-Assign the `BrakeLight` output function to a digital output pin in the Dout section. Without this, regen deceleration happens without brake lights — a safety concern.
+Assign the `BrakeLight` output function to a digital output pin in the Dout section. Without this, regen deceleration happens without brake lights — a safety concern. **Do not skip this step.**
 
 ### revRegen (V2.20A+)
 
@@ -86,7 +100,7 @@ Regen behaviour varies by inverter type. This is why pre-V2.15A regen was unreli
 
 **Nissan Leaf inverter:** Regen works well in V2.15A+. The Leaf motor and inverter were designed for aggressive regen in the OEM vehicle (e-Pedal). Supports strong negative torque values.
 
-**GS450h transaxle:** Regen via MG2 works in V2.15A+. The automatic gear shifting (added V2.15A) accounts for regen: it downshifts before regen engages at low speeds to avoid drivetrain shock. Damien notes the downshift during regen deceleration on his E39.
+**GS450h transaxle:** Regen via MG2 works in V2.15A+. The automatic gear shifting (added V2.15A) accounts for regen: it downshifts before regen engages at low speeds to avoid drivetrain shock. Damien notes the downshift during regen deceleration on his E39. **This produces a brief jerk when regen activates — this is correct VCU behaviour, not a fault.** The downshift is required for the GS450h planetary gearset to transmit negative torque through the drivetrain.
 
 **Prius Gen3:** Regen supported.
 
@@ -126,12 +140,13 @@ The BMS charge current limit caps how much regen current can flow back into the 
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | No regen at all | Firmware < V2.15A | Update firmware |
-| No regen at all | throtmin = 0 | Set to negative value and save to flash |
-| Jerky/harsh regen onset | throtmin too negative | Reduce magnitude (closer to 0) |
+| No regen at all | `throtmin = 0` | Set to negative value and save to flash |
+| No regen at all | `throtmax = 0` | Set `throtmax` to 100 — zero `throtmax` blocks all torque including regen |
+| Jerky/harsh regen onset | `throtmin` too negative | Reduce magnitude (closer to 0) |
 | Regen cuts out unexpectedly | BMS charge limit hit | Raise BMS max charge current if battery allows |
-| Brake lights not on during regen | BrakeLight output not assigned | Assign BrakeLight function to a Dout pin |
+| Brake lights not on during regen | `BrakeLight` output not assigned | Assign `BrakeLight` function to a Dout pin |
 | Regen feels inconsistent | Dual-pot mismatch triggering plausibility fault | Recalibrate both throttle channels |
-| GS450h drivetrain jerk on regen | Auto gear shift timing | Expected behaviour — V2.15A downshifts before regen |
+| GS450h jerk when regen engages | Automatic downshift before regen entry | Correct VCU behaviour — downshift required for GS450h drivetrain, not a fault |
 
 ---
 
