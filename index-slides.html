@@ -930,15 +930,35 @@ Throttle pedal → VCU (torque demand) → Inverter (AC phase switching) → Mot
 <p><strong>Fuse ratings:</strong> The fuse rating protects the wiring, not the load. Size fuses to the cable rating, not to the maximum current of the device. An undersized cable is a fire hazard even if the fuse doesn't blow.</p>
 <p><strong>Service disconnect (MSD):</strong> A manually operated HV disconnect that physically breaks the HV circuit. Required for safe servicing. Should be accessible without tools, in a known location, and clearly labelled. Some builders use the BMW safety box or similar contactor box as the MSD — this is acceptable only if the manual override is clearly accessible.</p>
 <hr>
-<h2>HVIL — High Voltage Interlock Loop</h2>
-<p>HVIL is a low-current 12V loop that passes through every HV connector, service plug, and access panel in the system. If any connector is opened or any panel is removed, the loop opens, the VCU detects the break and immediately opens the contactors.</p>
-<p>This means:</p>
+<h2>HV Isolation vs HVIL — Two Different Concepts</h2>
+<p>This section introduces two distinct safety concepts that are frequently confused. They are not the same thing.</p>
+<h3>HV Isolation</h3>
+<p><strong>What it is:</strong> A fundamental design property of the entire HV system.</p>
+<p>The HV bus (battery positive and negative) must be <strong>electrically floating</strong> — isolated from the vehicle chassis (LV ground). Neither HV+ nor HV− should have a low-resistance path to chassis.</p>
+<p><strong>Why it matters:</strong> If HV+ or HV− contacts the chassis, the chassis becomes energised at HV potential. Anyone touching the vehicle while also contacting ground completes a circuit through their body.</p>
+<p><strong>How it's maintained:</strong></p>
 <ul>
-<li>Unplugging an HV cable without discharging first triggers a contactor open, not electrocution</li>
-<li>Removing a battery lid triggers a contactor open</li>
-<li>A failed HV connector triggers a contactor open</li>
+<li>Battery terminals are never directly connected to chassis</li>
+<li>Inverter and charger HV ports are internally isolated by design</li>
+<li>The ISA shunt measures HV differentially — neither terminal is referenced to chassis ground</li>
 </ul>
-<p>HVIL does not replace the discharge procedure — contactors are mechanical devices and can fail. But it dramatically reduces the probability of accidental energisation during service.</p>
+<p><strong>What breaks it:</strong> A chafed HV cable touching a body panel, a failed component creating an HV-to-chassis path, or incorrect wiring (e.g. connecting HV− to chassis as a "ground" — never correct).</p>
+<p><strong>This is a design property, not a circuit you wire.</strong></p>
+<h3>HVIL — High Voltage Interlock Loop</h3>
+<p><strong>What it is:</strong> A low-current 12V detection circuit that monitors connector integrity.</p>
+<p>A simple series loop of 12V passes through every HV connector, service disconnect, and access panel in the system. When all connectors are fully mated, the loop is complete. When any connector is pulled, the loop opens and the VCU immediately opens the HV contactors.</p>
+<p><strong>What it does:</strong> Detects physical connector disconnection and triggers a contactor open. It does <strong>not</strong> detect isolation faults (HV contacting chassis).</p>
+<p><strong>This is an active 12V circuit you physically wire.</strong> See Module W04.</p>
+<h3>Summary</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>HV Isolation</th><th>HVIL</th></tr>
+<tr><td>What it is</td><td>A system design property</td><td>A 12V detection circuit</td></tr>
+<tr><td>What it detects</td><td>Ground faults — HV touching chassis</td><td>Connector disconnection</td></tr>
+<tr><td>How it works</td><td>Floating HV bus design</td><td>Series 12V loop through all HV connectors</td></tr>
+<tr><td>What happens on failure</td><td>HV chassis energisation — silent danger</td><td>VCU opens contactors immediately</td></tr>
+<tr><td>Do you wire it?</td><td>No — it's a design requirement</td><td>Yes — see Module W04</td></tr>
+</table></div>
+<div class="callout warn"><strong>Neither HVIL nor HV Isolation replaces the discharge procedure.</strong> Contactors can weld closed. HVIL circuits can fail. Isolation can be compromised. The only safe assumption before touching any HV component is that the system is live until you have personally measured otherwise.</div>
 <p>The BMW Safety Box (S-BOX) integrates HVIL with pack-level CAN monitoring in one unit. See Module W04 for HVIL wiring.</p>
 <hr>
 <h2>Cable Colour Conventions</h2>
@@ -1421,7 +1441,7 @@ Pin 45 (GND) ─────────────── Pot GND
 <p class="meta"><strong>Track:</strong> Wiring</p>
 <p class="meta"><strong>Prerequisites:</strong> H01 — VCU Hardware Walkthrough, F03 — EV Drivetrain Fundamentals</p>
 <p class="meta"><strong>Audience:</strong> All levels</p>
-<p><strong>Estimated reading time:</strong> 15 minutes</p>
+<p><strong>Estimated reading time:</strong> 18 minutes</p>
 <hr>
 <h2>Why This Module Matters</h2>
 <p>Contactor and precharge wiring is the most safety-critical part of a ZombieVerter installation. Getting it wrong can result in:</p>
@@ -1445,25 +1465,32 @@ Pin 45 (GND) ─────────────── Pot GND
 START signal received
         │
         ▼
-Negative contactor CLOSES  ◄─── always first
+Negative contactor CLOSES      ◄─── always first, immediate on MOD_PRECHARGE entry
         │
         ▼
-Precharge contactor CLOSES ◄─── current limited by precharge resistor
+Inverter 12V enable fires      ◄─── inv_out SET (Pin 32 relay), inverter begins booting
+        │
+   [250ms stagger]
         │
         ▼
-UDC voltage rises toward pack voltage
+Precharge contactor CLOSES     ◄─── current limited by precharge resistor
+        │                           HV bus begins rising
+        ▼
+1 second minimum precharge time enforced regardless of UDC
         │
         ▼
-UDC ≥ udcsw setpoint? ──── NO ──── wait (up to 5 seconds)
-        │                                │
-       YES                        PRECHARGE FAULT
+UDC ≥ udcsw AND UDC &lt; udclim AND throttle released?
+        │
+       YES ──── [250ms stagger] ──── Main (positive) contactor CLOSES
         │
         ▼
-Main (positive) contactor CLOSES
+VCU enters RUN mode  ──── opmode = &quot;run&quot;
         │
-        ▼
-VCU enters RUN mode  ──── opmode = &quot;run&quot;, invstat = &quot;on&quot;
+       NO ──── wait (up to 5 seconds total from start)
+                    │
+              PRECHARGE FAULT ──── prec_out cleared, ERR_PRECHARGE posted
 </code></pre>
+<div class="callout warn"><strong>Important:</strong> The precharge contactor does <strong>not</strong> open when the main contactor closes. It remains energised throughout the entire drive session and is only de-energised when the VCU returns to <code>MOD_OFF</code>. This is the actual firmware behaviour — the precharge resistor runs in parallel with the main contactor during normal driving. See [Precharge Contactor Behaviour](#precharge-contactor-behaviour) below.</div>
 <hr>
 <h2>UDC — The Most Important Concept in This Module</h2>
 <p><strong>UDC is the VCU's measurement of HV bus voltage.</strong> It is the single most critical input to the contactor sequencing logic.</p>
@@ -1529,11 +1556,49 @@ Battery +  ──── [Main Contactor] ─────────────
                  [Precharge Contactor] ── [Resistor] ─────────┘
 </code></pre>
 <hr>
+<h2>Precharge Contactor Behaviour</h2>
+<div class="callout warn">🟡 <strong>This differs from standard EV practice — read carefully.</strong></div>
+<p>In most EV systems the precharge contactor opens as soon as the main contactor closes, removing the resistor from the circuit. <strong>The ZombieVerter firmware does not do this.</strong></p>
+<p>Looking at the state machine in <code>stm32_vcu.cpp</code>: <code>prec_out</code> is set during <code>MOD_PRECHARGE</code> and is never cleared on transition to <code>MOD_RUN</code> or during normal driving. The only places <code>prec_out</code> is explicitly cleared are:</p>
+<ul>
+<li><code>MOD_OFF</code> — after the shutdown <code>rlyDly</code> countdown completes</li>
+<li><code>MOD_PCHFAIL</code> — on a precharge timeout fault</li>
+</ul>
+<p>This means <strong>the precharge contactor remains closed in parallel with the main contactor for the entire drive session.</strong> The precharge resistor is in the circuit throughout normal operation. At typical drive currents flowing through the main contactor, the resistor carries negligible current (the main contactor provides the low-impedance path), so this has no practical effect on performance.</p>
+<p>The implication for hardware selection: your precharge contactor and resistor must be rated for sustained energisation, not just the brief precharge interval. Most standard precharge contactors are already rated for continuous coil energisation, but verify your specific part.</p>
+<hr>
 <h2>UDC Measurement Point — ISA Shunt</h2>
 <p>The ISA shunt must be positioned to measure the voltage at the correct point. The shunt's U1 terminal reads voltage relative to HV ground.</p>
 <p><strong>During precharge, U1 should be connected to the HV bus on the inverter side of the main contactor.</strong> As the precharge resistor charges the inverter capacitors, U1 rises toward pack voltage. When it crosses <code>udcsw</code>, the VCU closes the main contactor.</p>
 <p>A common mistake is connecting U1 to the battery side of the main contactor. In this position, U1 reads full pack voltage immediately (before precharge even starts), and the VCU will try to close the main contactor without actually precharging the inverter capacitors — potentially welding the main contactor on first use.</p>
 <div class="callout warn"><strong>Check:</strong> During initial power-up with no HV connected, U1 should read 0V. Apply HV with only precharge closed — U1 should rise slowly from 0V toward pack voltage. Only then will the VCU close the main contactor.</div>
+<hr>
+<h2>Startup Timing Detail</h2>
+<p>The firmware enforces deliberate stagger delays between each contactor event. Understanding these helps diagnose first-start timing issues.</p>
+<p><strong>Full contactor sequence with timing:</strong></p>
+<pre><code class="lang-">
+MOD_PRECHARGE entry:
+  t=0ms      NEG contactor closes (immediate)
+  t=0ms      inv_out SET — inverter 12V enable fires (immediate)
+  t=250ms    PREC contactor closes (after 25-tick rlyDly)
+  t=250ms–1250ms  HV bus rising, 1-second minimum precharge enforced
+  t=≥1250ms  UDC check passes
+
+MOD_RUN entry:
+  t+0ms      rlyDly=25 begins
+  t+250ms    MAIN contactor closes (after 25-tick rlyDly)
+  t+250ms    Drive enabled
+
+MOD_OFF (shutdown):
+  t=0ms      rlyDly=250 begins (2.5-second grace period)
+  t=2500ms   All contactors open simultaneously
+</code></pre>
+<p>The <strong>250ms gap between NEG and PREC</strong> is intentional — it prevents multiple contactors pulling current simultaneously and gives the inverter time to begin its own boot sequence before HV arrives on the bus.</p>
+<p>The <strong>2.5-second shutdown delay</strong> (10× longer than the startup stagger) gives the inverter time to ramp torque down to zero and safely discharge gate drivers before contactors open.</p>
+<hr>
+<h2>Inverter 12V Enable — Timing and Exceptions</h2>
+<p>The VCU fires <code>inv_out</code> (Pin 32 relay) at the very start of <code>MOD_PRECHARGE</code>, <strong>before</strong> the precharge contactor closes. This is deliberate: the inverter needs time to boot its own firmware and establish CAN communication before the VCU expects to talk to it. The 250ms stagger before <code>prec_out</code> provides that window.</p>
+<p><strong>Exception — OpenInverter-based inverters:</strong> When the selected inverter type is set to OpenInverter (<code>Inverter = OI</code>), <code>inv_out</code> is <strong>not</strong> fired during precharge. OpenInverter manages its own startup independently. If you are using an OI-based inverter and the enable relay is not firing, this is expected behaviour, not a fault.</p>
 <hr>
 <h2>Key Parameters</h2>
 <p>These parameters control contactor and precharge behaviour:</p>
@@ -1552,6 +1617,8 @@ Battery +  ──── [Main Contactor] ─────────────
 <tr><td>Precharge times out (stays in PRECHARGE state)</td><td><code>udcsw</code> set too high, precharge resistor too large, shunt not reporting correctly</td></tr>
 <tr><td>VCU never attempts precharge</td><td><code>udcmin</code> set too high (pack voltage is below the minimum threshold)</td></tr>
 <tr><td>Precharge completes but VCU won't enter run mode</td><td><code>din_break</code> is showing "on" — brake signal is active or stuck, blocking run mode</td></tr>
+<tr><td>Inverter enable relay not firing, OI inverter</td><td>Expected — <code>inv_out</code> is intentionally suppressed for OpenInverter type</td></tr>
+<tr><td>Fault code appears briefly then clears on entering run mode</td><td>Normal — <code>ErrorMessage::UnpostAll()</code> is called every 10ms cycle while in <code>MOD_RUN</code></td></tr>
 </table></div>
 <hr>
 <h2>ISA Shunt Initialisation</h2>
@@ -1576,7 +1643,7 @@ Battery +  ──── [Main Contactor] ─────────────
 <li>CAN bus conflicts before the VCU has configured the inverter</li>
 <li>Inverter self-initialisation that conflicts with VCU sequencing</li>
 </ul>
-<p>The ZombieVerter controls an external relay (via Pin 32, low-side switching) to provide a switched 12V "ignition" signal to these devices. This relay should only fire after the VCU is in a valid state.</p>
+<p>The ZombieVerter controls an external relay (via Pin 32, low-side switching) to provide a switched 12V "ignition" signal to these devices. This relay fires at the start of <code>MOD_PRECHARGE</code>, giving the inverter a 250ms head-start before the precharge contactor closes and HV arrives on the bus.</p>
 <p><strong>Relay wiring:</strong></p>
 <pre><code class="lang-">
 12V+ ──── [Relay coil +]
@@ -1600,7 +1667,7 @@ Battery +  ──── [Main Contactor] ─────────────
 <li>[ ] <code>udcmin</code> is set to a sane value (try 20V for bench testing)</li>
 <li>[ ] <code>udcsw</code> is set below actual pack voltage</li>
 <li>[ ] <code>din_break</code> reads "off" in spot values (brake signal not stuck on)</li>
-<li>[ ] Inverter enable relay is firing during precharge (Pin 32)</li>
+<li>[ ] Inverter enable relay is firing during precharge (Pin 32) — except OpenInverter type</li>
 </ul>
 <hr>
 <h2>What's Next</h2>
@@ -1610,7 +1677,7 @@ Battery +  ──── [Main Contactor] ─────────────
 <li><strong>C03</strong> — Essential Parameters: First Start</li>
 </ul>
 <hr>
-<p class="source">Source: openinverter.org/wiki/ZombieVerter_VCU | openinverter.org forum threads</p>
+<p class="source">Source: openinverter.org/wiki/ZombieVerter_VCU | openinverter.org forum threads | stm32_vcu.cpp V2.40A-RW</p>
 <p class="source">Last verified against firmware: V2.30A (August 2025)</p>
   </div>
   <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--color-border-secondary);"><a href="feedback.html?module=W03&title=Contactor%20and%20Precharge%20Circuit" style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-decoration:none;border:1px solid var(--color-border-secondary);padding:5px 12px;border-radius:4px;">⚑ Report an issue with this module</a></div>
@@ -1630,6 +1697,10 @@ Battery +  ──── [Main Contactor] ─────────────
 <h2>What Is HVIL?</h2>
 <p>The High Voltage Interlock Loop (HVIL) is a low-current 12V detection circuit that passes through every HV connector, service disconnect, and access panel in the system. If any connector is unplugged, any panel is removed, or any HV cable is broken, the loop opens — and the VCU immediately opens the HV contactors.</p>
 <p>HVIL transforms accidental HV contact from a likely fatal event into a contactor-open event. Instead of unplugging an HV cable while the system is live, you unplug the HVIL pin first (or simultaneously), the VCU sees the broken loop, and the HV bus drops before you can touch a live terminal.</p>
+<div class="callout warn"><strong>HVIL vs HV Isolation — not the same thing:</strong></div>
+<div class="callout warn"><strong>HVIL</strong> is a 12V circuit that detects connector disconnection and triggers a contactor open.</div>
+<div class="callout warn"><strong>HV Isolation</strong> is the design property that HV+ and HV− are electrically floating from chassis ground. A ground fault (HV touching chassis) is an isolation failure — HVIL cannot detect it.</div>
+<div class="callout warn">See Module F04 for the full explanation of both concepts.</div>
 <hr>
 <h2>How It Works</h2>
 <p>The HVIL circuit is a simple series loop:</p>
@@ -1715,6 +1786,17 @@ shuntCan  = CAN2
 <p class="meta"><strong>Audience:</strong> Intermediate</p>
 <p><strong>Estimated reading time:</strong> 10 minutes</p>
 <hr>
+<h2>Three Pumps — Three Different Jobs</h2>
+<p>The VCU Dout section lists several pump-related output functions in the same place. Before wiring anything, understand that these control <strong>completely different systems</strong> with <strong>different purposes</strong>:</p>
+<div class="table-wrap"><table>
+<tr><th>VCU Function</th><th>What it controls</th><th>Purpose</th></tr>
+<tr><td><code>CoolantPump</code></td><td>Electric water/glycol pump</td><td><strong>Cools the inverter</strong></td></tr>
+<tr><td><code>GS450Hpump</code></td><td>GS450h transmission oil pump</td><td><strong>Enables traction</strong> — not cooling</td></tr>
+<tr><td><code>BrakeVacPump</code></td><td>Electric vacuum pump</td><td><strong>Brake servo assistance</strong></td></tr>
+</table></div>
+<div class="callout warn"><strong>⚠️ GS450h builders:</strong> The GS450h oil pump <strong>pressurises the transmission</strong> to engage its internal clutch plates so the gearset can transmit torque to the wheels. It is <strong>not a cooling pump</strong> and has nothing to do with inverter cooling. The GS450h inverter uses a separate water/glycol coolant loop — that is what <code>CoolantPump</code> controls. Without oil pressure the transmission cannot transmit torque, regardless of inverter state. See Module I03-X for full oil pump wiring and commissioning.</div>
+<p>These three functions are independent. A build may need all three, some, or just one.</p>
+<hr>
 <h2>Why Cooling Matters More in a Conversion</h2>
 <p>In an OEM EV, the cooling system is engineered alongside the drivetrain with precise flow rates, thermal mass, and thermostat control tuned for that specific motor and inverter. In a conversion, you are building a cooling system from scratch around salvaged components that were designed with different assumptions.</p>
 <p>Under-cooling in a conversion manifests as:</p>
@@ -1730,24 +1812,35 @@ shuntCan  = CAN2
 <div class="table-wrap"><table>
 <tr><th>Function</th><th>What it controls</th><th>How it activates</th></tr>
 <tr><td><code>CoolantPump</code></td><td>Electric coolant pump relay</td><td>On during pre-charge, charge and run mode</td></tr>
-<tr><td><code>GS450Hpump</code></td><td>GS450h oil pump PWM</td><td>PWM speed control via PumpPWM parameter</td></tr>
+<tr><td><code>GS450Hpump</code></td><td>GS450h transmission oil pump PWM</td><td>PWM speed control via PumpPWM parameter</td></tr>
 <tr><td><code>CoolingFan</code></td><td>Cooling fan relay or speed controller</td><td>Activates when temp exceeds FanTemp</td></tr>
 <tr><td><code>BrakeVacPump</code></td><td>Brake vacuum pump relay</td><td>Activates when brake vacuum is low</td></tr>
 </table></div>
 <hr>
 <h2>Coolant Pump</h2>
 <p>An electric coolant pump must run whenever the inverter is active — from precharge through to run mode shutdown. Assign <code>CoolantPump</code> to a low-side digital output pin.</p>
-<p><strong>Circuit:</strong> 12V+ → relay coil+ → relay coil− → VCU Dout pin (low-side). When the VCU activates the output, the relay closes and supplies 12V to the pump motor.</p>
+<p><strong>Circuit:</strong> 12V+ → relay coil → relay coil− → VCU Dout pin (low-side). When the VCU activates the output, the relay closes and supplies 12V to the pump motor.</p>
 <p><strong>Pump selection:</strong> Match the pump to the inverter's cooling system requirements. Most donor inverters (Leaf, Tesla) are designed for water/glycol coolant with flow rates in the 2–8 L/min range. An automotive heater core pump (e.g. Davies Craig EWP series) is commonly used in conversions.</p>
 <p><strong>GS450h oil pump:</strong> Uses PWM speed control, not a simple relay. See Module I03-X for full oil pump controller wiring. <code>PumpPWM</code> parameter (added V2.20A) controls duty cycle. Starting point: 30%.</p>
 <hr>
 <h2>Cooling Fan — FanTemp (V2.20A+)</h2>
 <p><code>FanTemp</code> sets the inverter heatsink temperature (<code>temphs</code>) at which the VCU activates the cooling fan output.</p>
 <pre><code class="lang-">
-FanTemp = 40    ← fan on when heatsink reaches 40°C
+FanTemp = 40    → fan on when heatsink reaches 40°C
 </code></pre>
 <p>Set this based on your cooling system design. A well-designed cooling loop should keep the inverter heatsink below 60°C under sustained load. If <code>temphs</code> regularly reaches 80°C+, the cooling system needs more capacity.</p>
 <p><strong>Monitoring:</strong> Watch <code>temphs</code> and <code>tempm</code> in Spot Values during sustained driving. These are your primary thermal health indicators.</p>
+<hr>
+<h2>GS450h Oil Pump — Traction, Not Cooling</h2>
+<div class="callout warn"><strong>This is not a coolant pump.</strong> It is documented here because it appears in the same Dout section of the web interface alongside cooling outputs.</div>
+<p>The GS450h transmission uses hydraulic oil pressure to engage its internal clutch plates. Without oil pressure, the transmission cannot transmit torque — the wheels will not turn regardless of inverter state. The pump must run from precharge throughout run mode.</p>
+<ul>
+<li>Current draw: ~25A at full speed — <strong>must</strong> have its own dedicated 12V feed with a 30A minimum fuse</li>
+<li>Do not power from a VCU output pin</li>
+<li>Start at 30% PWM duty cycle</li>
+<li>From V2.20A, the <code>PumpPWM</code> output function is freely assignable (not limited to GS450h builds)</li>
+</ul>
+<p>See <strong>Module I03-X</strong> for full GS450h oil pump wiring, specifications, and commissioning procedure.</p>
 <hr>
 <h2>Brake Vacuum Pump</h2>
 <p>Many non-hybrid donor vehicles use engine vacuum for brake servo assistance. In an EV conversion with no engine, this vacuum disappears. An electric vacuum pump is required for brake servo operation.</p>
@@ -1758,6 +1851,7 @@ FanTemp = 40    ← fan on when heatsink reaches 40°C
 <li>The VCU activates the pump when vacuum drops below threshold</li>
 </ol>
 <p>Alternatively, use a standalone electric vacuum pump controller — these are available as off-the-shelf units that self-regulate without VCU integration.</p>
+<div class="callout warn"><strong>Fix note — V2.05A:</strong> Before V2.05A, the brake vacuum pump output stayed active after ignition off. This was corrected in V2.05A (March 2024). If your pump runs continuously after key-off, update firmware.</div>
 <hr>
 <h2>Temperature Monitoring</h2>
 <p>The VCU receives temperature data from several sources:</p>
@@ -1785,7 +1879,7 @@ FanTemp = 40    ← fan on when heatsink reaches 40°C
 <p><strong>No fan control in summer:</strong> A cooling loop without fan control may be adequate in winter ambient temperatures and completely inadequate in summer. Design for worst-case ambient temperature.</p>
 <hr>
 <p class="source">Source: Damien Maguire @Evbmw — V2.20A firmware walkthrough (December 2024) · openinverter.org community builds</p>
-<p><em>PumpPWM and FanTemp added V2.20A</em> <em>Last verified against firmware: V2.30A (August 2025)</em></p>
+<p><em>PumpPWM and FanTemp added V2.20A · Vacuum pump fix: V2.05A (March 2024)</em> <em>Last verified against firmware: V2.30A (August 2025)</em></p>
   </div>
   <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--color-border-secondary);"><a href="feedback.html?module=W05&title=Cooling%20System%20Control" style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-decoration:none;border:1px solid var(--color-border-secondary);padding:5px 12px;border-radius:4px;">⚑ Report an issue with this module</a></div>
 </section>
@@ -3964,11 +4058,18 @@ inverterCan = CAN1
 <p><strong>Throttle-lift regen</strong> — triggered by lifting the throttle. When <code>throtmin</code> is set to a negative value (e.g. -5), lifting the throttle produces a light braking effect rather than pure coast.</p>
 <p><strong>Brake regen</strong> — triggered by the brake pedal signal. Additional regen on top of (or instead of) throttle-lift regen when the brake is pressed.</p>
 <hr>
+<h2>Understanding throtmin vs regenmax</h2>
+<p>These two parameters are frequently confused — they control different things:</p>
+<div class="callout warn"><strong><code>throtmin</code></strong> is the <strong>floor on <code>potnom</code> at all times</strong> — the minimum normalised throttle demand the VCU will allow, even with your foot fully off the pedal. Setting it negative creates throttle-lift regen.</div>
+<div class="callout warn"></div>
+<div class="callout warn"><strong><code>regenmax</code></strong> is the <strong>maximum regen torque level</strong>, expressed as a <code>potnom</code> percentage, <strong>scaled by motor RPM</strong>. It caps how hard regen can bite at any given speed, tapering to zero at low RPM.</div>
+<p>In practice: <code>throtmin</code> is what you feel when you lift the throttle at speed. <code>regenmax</code> governs how that regen level is tapered away as the vehicle slows, preventing a stall jerk at low speed.</p>
+<hr>
 <h2>The Key Parameters</h2>
 <h3>Complete Regen Parameter Reference</h3>
 <div class="table-wrap"><table>
 <tr><th>Parameter</th><th>Default</th><th>Range</th><th>Description</th></tr>
-<tr><td><code>throtmin</code></td><td>-100%</td><td>-100 to 0</td><td>Minimum (most negative) potnom allowed at all times — sets throttle-lift regen level</td></tr>
+<tr><td><code>throtmin</code></td><td>0%</td><td>-100 to 0</td><td><strong>Floor on <code>potnom</code> at all times</strong> — sets throttle-lift regen level. 0 = no regen (pure coast).</td></tr>
 <tr><td><code>regenmax</code></td><td>-10%</td><td>-35 to 0</td><td>Maximum regen as a potnom percentage, scaled by motor RPM</td></tr>
 <tr><td><code>regenrpm</code></td><td>1500 rpm</td><td>100–10000</td><td>RPM at which <code>regenmax</code> is fully applied. Below this, regen tapers to 0 at 100 rpm</td></tr>
 <tr><td><code>regenendrpm</code></td><td>100 rpm</td><td>100–10000</td><td>Below this RPM, regen is zero — prevents regen stall</td></tr>
@@ -3982,26 +4083,28 @@ inverterCan = CAN1
 <tr><th>throtmin value</th><th>Effect</th></tr>
 <tr><td>0 (default)</td><td>No regen on throttle lift — pure coast</td></tr>
 <tr><td>-5</td><td>Light one-pedal style regen</td></tr>
-<tr><td>-20</td><td>Moderate regen — noticeable engine-brake feel</td></tr>
-<tr><td>-50</td><td>Strong regen — aggressive deceleration on throttle lift</td></tr>
+<tr><td>-10</td><td>Noticeable engine-brake feel</td></tr>
+<tr><td>-20</td><td>Moderate regen</td></tr>
+<tr><td>-30</td><td>Strong regen — aggressive deceleration on throttle lift</td></tr>
+<tr><td>-50+</td><td>Very strong — likely unnatural, unsettles passengers</td></tr>
 </table></div>
 <p>Start conservative (e.g. -5) and increase gradually. Aggressive regen values feel unnatural and can be unsettling for passengers who aren't expecting strong deceleration on every throttle lift.</p>
 <div class="callout warn">Damien's personal preference for his E39 GS450h build: "I'm not a huge fan of regen myself" — but notes that many builders want it for practical range extension and one-pedal driving feel.</div>
 <h3>regenmax and RPM tapering</h3>
 <p><code>regenmax</code> is not applied flat — the VCU tapers it based on motor RPM. At <code>regenrpm</code> (default 1500) the full value applies. Below <code>regenendrpm</code> (default 100 rpm) regen is zero. This prevents regen stall at low speed and jerky stops.</p>
 <h3>Brake pedal regen — regenBrake</h3>
-<p>Separate from throttle-lift regen. Applies additional negative potnom when the brake pedal input (Pin 49) is active. Useful for stronger blended braking feel without making throttle-lift too aggressive. Default is -10% — same as <code>regenmax</code>.</p>
+<p>Separate from throttle-lift regen. Applies additional negative <code>potnom</code> when the brake pedal input (Pin 49) is active. Useful for stronger blended braking feel without making throttle-lift too aggressive. Default is -10% — same as <code>regenmax</code>.</p>
 <h3>RegenBrakeLight</h3>
-<p>Sets the potnom threshold below which the brake light output activates during regen. Default -15% means the brake lights come on when regen exceeds 15% — ensures following drivers see brake lights during meaningful deceleration, even with no mechanical braking.</p>
+<p>Sets the <code>potnom</code> threshold below which the brake light output activates during regen. Default -15% means the brake lights come on when regen exceeds 15% — ensures following drivers see brake lights during meaningful deceleration, even with no mechanical braking.</p>
 <h3>brakelight output</h3>
-<p>Assign the <code>BrakeLight</code> output function to a digital output pin in the Dout section. Without this, regen deceleration happens without brake lights — a safety concern.</p>
+<p>Assign the <code>BrakeLight</code> output function to a digital output pin in the Dout section. Without this, regen deceleration happens without brake lights — a safety concern. <strong>Do not skip this step.</strong></p>
 <h3>revRegen (V2.20A+)</h3>
 <p>Controls whether regen is active in reverse direction. Some builds need regen in reverse (regenerative downhill reverse), others don't. Toggle on or off.</p>
 <hr>
 <h2>Drivetrain-Specific Regen Behaviour</h2>
 <p>Regen behaviour varies by inverter type. This is why pre-V2.15A regen was unreliable — each drivetrain handles negative torque commands differently, and the VCU firmware needed per-drivetrain tuning.</p>
 <p><strong>Nissan Leaf inverter:</strong> Regen works well in V2.15A+. The Leaf motor and inverter were designed for aggressive regen in the OEM vehicle (e-Pedal). Supports strong negative torque values.</p>
-<p><strong>GS450h transaxle:</strong> Regen via MG2 works in V2.15A+. The automatic gear shifting (added V2.15A) accounts for regen: it downshifts before regen engages at low speeds to avoid drivetrain shock. Damien notes the downshift during regen deceleration on his E39.</p>
+<p><strong>GS450h transaxle:</strong> Regen via MG2 works in V2.15A+. The automatic gear shifting (added V2.15A) accounts for regen: it downshifts before regen engages at low speeds to avoid drivetrain shock. Damien notes the downshift during regen deceleration on his E39. <strong>This produces a brief jerk when regen activates — this is correct VCU behaviour, not a fault.</strong> The downshift is required for the GS450h planetary gearset to transmit negative torque through the drivetrain.</p>
 <p><strong>Prius Gen3:</strong> Regen supported.</p>
 <p><strong>Outlander:</strong> Regen supported from V2.15A.</p>
 <hr>
@@ -4026,12 +4129,13 @@ inverterCan = CAN1
 <div class="table-wrap"><table>
 <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
 <tr><td>No regen at all</td><td>Firmware &lt; V2.15A</td><td>Update firmware</td></tr>
-<tr><td>No regen at all</td><td>throtmin = 0</td><td>Set to negative value and save to flash</td></tr>
-<tr><td>Jerky/harsh regen onset</td><td>throtmin too negative</td><td>Reduce magnitude (closer to 0)</td></tr>
+<tr><td>No regen at all</td><td><code>throtmin = 0</code></td><td>Set to negative value and save to flash</td></tr>
+<tr><td>No regen at all</td><td><code>throtmax = 0</code></td><td>Set <code>throtmax</code> to 100 — zero <code>throtmax</code> blocks all torque including regen</td></tr>
+<tr><td>Jerky/harsh regen onset</td><td><code>throtmin</code> too negative</td><td>Reduce magnitude (closer to 0)</td></tr>
 <tr><td>Regen cuts out unexpectedly</td><td>BMS charge limit hit</td><td>Raise BMS max charge current if battery allows</td></tr>
-<tr><td>Brake lights not on during regen</td><td>BrakeLight output not assigned</td><td>Assign BrakeLight function to a Dout pin</td></tr>
+<tr><td>Brake lights not on during regen</td><td><code>BrakeLight</code> output not assigned</td><td>Assign <code>BrakeLight</code> function to a Dout pin</td></tr>
 <tr><td>Regen feels inconsistent</td><td>Dual-pot mismatch triggering plausibility fault</td><td>Recalibrate both throttle channels</td></tr>
-<tr><td>GS450h drivetrain jerk on regen</td><td>Auto gear shift timing</td><td>Expected behaviour — V2.15A downshifts before regen</td></tr>
+<tr><td>GS450h jerk when regen engages</td><td>Automatic downshift before regen entry</td><td>Correct VCU behaviour — downshift required for GS450h drivetrain, not a fault</td></tr>
 </table></div>
 <hr>
 <h2>One-Pedal Driving</h2>
@@ -4063,24 +4167,27 @@ inverterCan = CAN1
 <hr>
 <h2>Overview</h2>
 <p>The ZombieVerter supports AC onboard charging, CHAdeMO DC fast charging, and CCS via the BMW i3 LIM or Foccci open-source controller. One VCU can manage any of these, and combinations are possible (e.g. Leaf PDM for AC plus CHAdeMO for fast charging in the same vehicle).</p>
-<h3>Supported Chargers</h3>
+<hr>
+<h2>Supported Chargers</h2>
+<p>The <strong>Community Experience</strong> column reflects how well-documented and battle-tested each option is in real ZombieVerter builds as of V2.30A. Protocol support in firmware does not automatically mean easy integration — maturity varies significantly.</p>
 <div class="table-wrap"><table>
-<tr><th>Charger</th><th>AC Power</th><th>Notes</th></tr>
-<tr><td>Nissan Leaf PDM Gen1</td><td>3.3 kW</td><td>Simplest setup — no CP/PP wiring to VCU</td></tr>
-<tr><td>Nissan Leaf PDM Gen2</td><td>6.6 kW</td><td>Recommended first build</td></tr>
-<tr><td>Nissan Leaf PDM Gen3</td><td>6.6 kW</td><td>2018+ Leaf. Improved in V2.22A</td></tr>
-<tr><td>Mitsubishi Outlander OBC</td><td>3.3 kW</td><td>AC + DC-DC. Two 12V feeds required.</td></tr>
-<tr><td>VW Golf PHEV OBC</td><td>3.3 kW</td><td>VAG protocol. Two CAN buses.</td></tr>
-<tr><td>Audi e-tron OBC</td><td>7.2–11 kW</td><td>Most popular VW option.</td></tr>
-<tr><td>MG ZS Gen1 OBC</td><td>6.6 kW</td><td>VAG protocol.</td></tr>
-<tr><td>MG ZS Gen2 OBC</td><td>6.6–11 kW</td><td>3-phase capable.</td></tr>
-<tr><td>Tesla Gen2 charger</td><td>10 kW</td><td>Requires open-source controller board.</td></tr>
-<tr><td>Tesla Gen3 charger</td><td>18.5 kW</td><td>Requires Gen3 v2 controller board.</td></tr>
-<tr><td>Elcon</td><td>1.5–6.6 kW</td><td>Universal J1772 charger.</td></tr>
-<tr><td>CHAdeMO</td><td>DC 50+ kW</td><td>Native VCU support. 6 PCB jumpers required.</td></tr>
-<tr><td>CCS (BMW i3 LIM)</td><td>DC fast</td><td>Salvaged from i3. Type 1 and 2.</td></tr>
-<tr><td>CCS (Foccci)</td><td>DC fast</td><td>Open-source controller. V2.20A one-click setup.</td></tr>
+<tr><th>Charger</th><th>AC Power</th><th>Community Experience</th><th>Notes</th></tr>
+<tr><td>Nissan Leaf PDM Gen1</td><td>3.3 kW</td><td>🟢 Extensive</td><td>Simplest setup — no CP/PP wiring to VCU</td></tr>
+<tr><td>Nissan Leaf PDM Gen2</td><td>6.6 kW</td><td>🟢 Extensive</td><td><strong>Recommended first build</strong></td></tr>
+<tr><td>Nissan Leaf PDM Gen3</td><td>6.6 kW</td><td>🟢 Good</td><td>2018+ Leaf. Improved in V2.22A</td></tr>
+<tr><td>Mitsubishi Outlander OBC</td><td>3.3 kW</td><td>🟢 Good</td><td>AC + DC-DC. Two 12V feeds required — most common failure point</td></tr>
+<tr><td>VW Golf PHEV OBC</td><td>3.3 kW</td><td>🟡 Limited</td><td>VAG protocol. Two CAN buses required. Few documented builds.</td></tr>
+<tr><td>Audi e-tron OBC</td><td>7.2–11 kW</td><td>🟡 Limited</td><td>Most capable VW option. Working but complex — community experience thinner than Leaf/Outlander.</td></tr>
+<tr><td>MG ZS Gen1 OBC</td><td>6.6 kW</td><td>🟡 Limited</td><td>VAG protocol — same two-CAN-bus requirement as VW</td></tr>
+<tr><td>MG ZS Gen2 OBC</td><td>6.6–11 kW</td><td>🟡 Limited</td><td>3-phase capable. Protocol supported; limited real-world build reports as of V2.30A.</td></tr>
+<tr><td>Tesla Gen2 charger</td><td>10 kW</td><td>🟡 Moderate</td><td>Requires open-source controller board from evbmw.com</td></tr>
+<tr><td>Tesla Gen3 charger</td><td>18.5 kW</td><td>🟡 Moderate</td><td>Requires Gen3 v2 controller board</td></tr>
+<tr><td>Elcon</td><td>1.5–6.6 kW</td><td>🟡 Moderate</td><td>Universal J1772 charger</td></tr>
+<tr><td>CHAdeMO</td><td>DC 50+ kW</td><td>🟢 Good</td><td>Native VCU support. 6 PCB jumpers required.</td></tr>
+<tr><td>CCS (BMW i3 LIM)</td><td>DC fast</td><td>🟢 Good</td><td>Salvaged from i3. Type 1 and 2.</td></tr>
+<tr><td>CCS (Foccci)</td><td>DC fast</td><td>🟢 Good</td><td>Open-source controller. V2.20A one-click setup.</td></tr>
 </table></div>
+<div class="callout danger"><strong>🟡 VW and MG chargers:</strong> The VAG protocol is implemented in firmware and has been demonstrated working. However, the two-CAN-bus requirement is a common integration stumbling block, and real-world documented builds using VW or MG OBCs are significantly fewer than Leaf or Outlander builds. Treat these as working-but-complex options that require more troubleshooting and community forum research. Do not assume the same level of step-by-step documentation exists as for Leaf PDM or Outlander.</div>
 <hr>
 <h2>Understanding CP and PP Signals</h2>
 <p>Every J1772 / Type 2 AC charging setup uses two signals from the charge port to the VCU. Understanding these is essential before wiring any charger except the Leaf PDM.</p>
@@ -4113,7 +4220,6 @@ inverterCan = CAN1
 <li><strong>Type 2 (IEC 62196) connectors:</strong> 4.7kΩ to ground</li>
 <li>Note: many charge ports already have this lower resistor installed — check before adding one</li>
 </ul>
-<p>The VCU analogue input reads the voltage at the midpoint of this divider. Different cable PP resistors change the midpoint voltage, allowing the VCU to detect both cable presence and current rating.</p>
 <p><strong>Setup:</strong> Assign the <code>ProxPilot</code> function to an analogue input pin. Watch <code>PPVal</code> in Spot Values while plugging in a cable. Set <code>PPthreshold</code> just above the reading when the cable is fully inserted. Note that different cables (13A vs 32A) will give different <code>PPVal</code> readings — set your threshold for the lowest-rated cable you intend to use.</p>
 <div class="callout danger"><strong>Leaf PDM exception:</strong> The Leaf PDM detects cable insertion internally via its own CP circuit. You do not need to wire PP to the VCU for a Leaf PDM build.</div>
 <hr>
@@ -4153,24 +4259,24 @@ inverterCan = CAN1
 <p><strong>Power control:</strong></p>
 <pre><code class="lang-">
 chargerType = LeafPDM
-chargePower = 1000   ← start at 1kW, ramp up
-chargePower = 3300   ← Gen1 max
-chargePower = 6600   ← Gen2/3 max
-chargePower = 0      ← stop charger
+chargePower = 1000   → start at 1kW, ramp up
+chargePower = 3300   → Gen1 max
+chargePower = 6600   → Gen2/3 max
+chargePower = 0      → stop charger
 </code></pre>
 <div class="callout warn"><strong>DC-DC note:</strong> The PDM's DC-DC activates in charge mode. Ensure permanent 12V on VCU — a 12V dropout reboots the VCU mid-session.</div>
 <hr>
 <h2>Mitsubishi Outlander OBC</h2>
 <p>3.3 kW AC charger + DC-DC converter. Supported since V2.01A.</p>
-<div class="callout warn"><strong>🔴 Two 12V power inputs — both must be fed.</strong> The Outlander OBC has two separate 12V connectors. Both must be powered. Wiring only one: <code>opmode</code> shows "charge" but <code>idc</code> = 0 and no current flows. This is the most common Outlander charging failure.</div>
+<div class="callout warn"><strong>⚠️ Two 12V power inputs — both must be fed.</strong> The Outlander OBC has two separate 12V connectors. Both must be powered. Wiring only one: <code>opmode</code> shows "charge" but <code>idc</code> = 0 and no current flows. This is the most common Outlander charging failure.</div>
 <p><strong>CP/PP wiring required.</strong> From V2.20A, use <code>CpSpoof</code> PWM output for CP. Wire PP with 330Ω pull-up to 5V.</p>
 <p>V2.20A also added a required CAN heartbeat message — without it the OBC stops after a timeout. Current firmware handles this automatically.</p>
 <hr>
 <h2>VW / Audi OBC and MG ZS</h2>
 <p>All use VAG protocol — set <code>chargerType</code> = VAG.</p>
-<div class="callout warn"><strong>🔴 Two separate CAN buses required.</strong> VW chargers use "Hybrid CAN" and "Powertrain CAN" internally. Both must connect to different VCU CAN ports. Wire only one bus and the charger ignores you.</div>
-<p><strong>Audi e-tron OBC</strong> (7.2–11 kW): Most popular VW option. The VCU sends startup CAN commands that disable OEM requirements for charge port lock feedback and LIN features — no OEM Audi charge port needed. Community credit: Mitch Elliott's reverse engineering.</p>
-<p><strong>MG ZS Gen2</strong> (11 kW): 3-phase capable. Also VAG protocol.</p>
+<div class="callout warn"><strong>⚠️ Two separate CAN buses required.</strong> VW chargers use "Hybrid CAN" and "Powertrain CAN" internally. Both must connect to different VCU CAN ports. Wire only one bus and the charger ignores you.</div>
+<p><strong>Audi e-tron OBC</strong> (7.2–11 kW): The VCU sends startup CAN commands that disable OEM requirements for charge port lock feedback and LIN features — no OEM Audi charge port needed. Community credit: Mitch Elliott's reverse engineering.</p>
+<p><strong>MG ZS Gen2</strong> (11 kW): 3-phase capable. Also VAG protocol. Support is present in firmware but documented builds are limited — check the openinverter.org forum for current community experience before committing to this option.</p>
 <p>All VW/MG chargers need PP wiring (330Ω pull-up) and CpSpoof or physical CP circuit.</p>
 <hr>
 <h2>Tesla Gen2 and Gen3 Chargers</h2>
@@ -4210,18 +4316,18 @@ chargePower = 0      ← stop charger
 <div class="table-wrap"><table>
 <tr><th>Charger</th><th>Power</th><th>Complexity</th><th>CP/PP to VCU</th><th>Best for</th></tr>
 <tr><td>Leaf PDM Gen2</td><td>6.6 kW</td><td>Low</td><td>Not needed</td><td>First build, Leaf stack</td></tr>
-<tr><td>Outlander OBC</td><td>6.6 kW</td><td>Medium</td><td>PP + CpSpoof</td><td>Outlander builds</td></tr>
-<tr><td>VW Golf PHEV OBC</td><td>3.3 kW</td><td>Medium</td><td>PP + CP</td><td>European builds, cheap</td></tr>
-<tr><td>Audi e-tron OBC</td><td>7.2–11 kW</td><td>Medium</td><td>PP + CpSpoof</td><td>High-power AC</td></tr>
-<tr><td>MG ZS Gen2 OBC</td><td>11 kW</td><td>Medium</td><td>PP + CpSpoof</td><td>3-phase 11kW</td></tr>
+<tr><td>Outlander OBC</td><td>3.3 kW</td><td>Medium</td><td>PP + CpSpoof</td><td>Outlander builds</td></tr>
+<tr><td>VW Golf PHEV OBC</td><td>3.3 kW</td><td>High</td><td>PP + CP + dual CAN</td><td>European builds — expect integration effort</td></tr>
+<tr><td>Audi e-tron OBC</td><td>7.2–11 kW</td><td>High</td><td>PP + CpSpoof + dual CAN</td><td>High-power AC — expect integration effort</td></tr>
+<tr><td>MG ZS Gen2 OBC</td><td>11 kW</td><td>High</td><td>PP + CpSpoof + dual CAN</td><td>3-phase 11kW — limited community reference</td></tr>
 <tr><td>Tesla Gen2</td><td>10 kW</td><td>High — controller board</td><td>Full charge port</td><td>High AC power</td></tr>
 <tr><td>Tesla Gen3</td><td>18.5 kW</td><td>High — controller board</td><td>Full charge port</td><td>Maximum AC speed</td></tr>
 <tr><td>CHAdeMO</td><td>DC 50+ kW</td><td>High — PCB jumpers + wiring</td><td>Not needed</td><td>Public fast charging</td></tr>
 </table></div>
 <div class="callout warn"><strong>Recommended first build:</strong> Leaf PDM Gen2. Most documented, no PP wiring to VCU, fewest gotchas.</div>
 <hr>
-<p class="source">Source: Damien Maguire @Evbmw · Good Enuff Garage · openinverter.org</p>
-<p class="source">Last verified against firmware: V2.30A (August 2025)</p>
+<p class="source">Source: Damien Maguire @Evbmw · Good Enuff Garage · openinverter.org · Mitch Elliott (Audi e-tron OBC reverse engineering)</p>
+<p><em>Outlander OBC: V2.01A · Tesla Gen2 DCDC: V2.04A · Foccci one-click setup: V2.20A</em> <em>Last verified against firmware: V2.30A (August 2025)</em></p>
   </div>
   <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--color-border-secondary);"><a href="feedback.html?module=A02&title=Charge%20Control%20and%20Popular%20Chargers" style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-decoration:none;border:1px solid var(--color-border-secondary);padding:5px 12px;border-radius:4px;">⚑ Report an issue with this module</a></div>
 </section>
