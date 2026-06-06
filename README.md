@@ -3,7 +3,8 @@
 A structured, multi-format training series for the [ZombieVerter](https://github.com/damienmaguire/Stm32-vcu) open-source EV conversion Vehicle Control Unit (VCU). Designed and maintained by Damien Maguire (EVBMW) and the [openinverter.org](https://openinverter.org) community.
 
 **Firmware target:** V2.30A (August 2025)  
-**Audience:** DIY EV converters — complete beginners through intermediate builders
+**Audience:** DIY EV converters — complete beginners through intermediate builders  
+**Live site:** https://robertwa1974.github.io/zombieverter-training/
 
 ---
 
@@ -11,6 +12,7 @@ A structured, multi-format training series for the [ZombieVerter](https://github
 
 | File | Description |
 |---|---|
+| [Live site](https://robertwa1974.github.io/zombieverter-training/) | Browse modules online — auto-updated on every push |
 | `zombieverter-training-complete.html` | Complete classroom slide deck — 159 slides, self-contained single file, all diagrams embedded |
 | `zombieverter-training-manual.pdf` | Printable reference manual — all 28 modules with wiring diagrams |
 | `zombieverter-wiki-pages.zip` | MediaWiki `.wiki` + source `.md` files for openinverter.org wiki import |
