@@ -143,6 +143,22 @@ if (modCode) {
   document.getElementById('moduleBadge').style.display = 'inline-flex';
 }
 
+// No ?module= param means this load didn't come from a module page's "Report an
+// issue" link (e.g. tracker.html's "+ New Issue" button, a bookmark, or someone
+// testing the form directly). Use the referrer to tell those apart so they don't
+// all collapse into indistinguishable "General" rows on the tracker.
+function noModuleContext() {
+  if (!document.referrer) return 'direct load, no referrer';
+  try {
+    const ref = new URL(document.referrer);
+    return ref.origin === window.location.origin
+      ? `via ${ref.pathname.split('/').pop() || ref.pathname}`
+      : `via ${ref.hostname}`;
+  } catch (_) {
+    return 'direct load';
+  }
+}
+
 async function submitForm() {
   const desc = document.getElementById('desc').value.trim();
   if (!desc) {
@@ -156,11 +172,12 @@ async function submitForm() {
   btn.disabled = true;
   btn.textContent = 'Submitting…';
 
-  const itype    = document.querySelector('input[name=itype]:checked').value;
-  const reporter = document.getElementById('reporter').value.trim() || 'Anonymous';
+  const itype       = document.querySelector('input[name=itype]:checked').value;
+  const reporterRaw = document.getElementById('reporter').value.trim();
+  const reporter    = reporterRaw || (modCode ? 'Anonymous' : `Anonymous (${noModuleContext()})`);
 
   const body = new URLSearchParams();
-  body.append(F_MODULE,   modCode  || 'General');
+  body.append(F_MODULE,   modCode  || 'General (no module param)');
   body.append(F_TITLE,    modTitle || '');
   body.append(F_TYPE,     itype);
   body.append(F_DESC,     desc);
